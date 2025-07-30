@@ -1,15 +1,19 @@
-package main
+package client
 
 import (
 	"bufio"
 	"fmt"
 	"log"
 	"net/http"
+
+	// Package Dependencies
+	"github.com/monkin77/ingestion_service/src/config"
+	"github.com/monkin77/ingestion_service/src/publisher"
 )
 
 // StreamTweets connects to the Twitter API (or mock API) and streams tweets.
 // TODO: Replace the `pub` parameter with the actual publisher interface that implements the Publish method.
-func StreamTweets(cfg *Config, pub any) error {
+func StreamTweets(cfg *config.Config, pub publisher.Publisher) error {
 	var (
 		resp    *http.Response
 		err     error
@@ -64,15 +68,13 @@ func StreamTweets(cfg *Config, pub any) error {
 		message = scanner.Text()
 
 		// Publish the tweet to the message queue.
-		/*
-			err = pub.Publish(message)
-			if err != nil {
-				log.Printf("Error publishing message: %v", err)
-				continue // Continue to the next tweet even if publishing fails
-			}
+		err = pub.Publish(message)
+		if err != nil {
+			log.Printf("Error publishing message: %v", err)
+			continue // Continue to the next tweet even if publishing fails
+		}
 
-			log.Println("Tweet published successfully.")
-		*/
+		log.Println("Tweet published successfully.")
 
 		// For now, we just log the message.
 		log.Printf("Received tweet: %s\n", message)
