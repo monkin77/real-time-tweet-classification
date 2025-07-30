@@ -14,6 +14,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	// External libraries
@@ -61,6 +62,18 @@ func main() {
 		log.Fatalf("MOCK_API_PORT is not set in the environment variables. Please set it in the .env file.")
 	}
 
+	// ======  Set the working directory to the directory of this file ====== 
+	// This is necessary to ensure the CSV file can be found relative to this file's location
+	if wd, err := os.Getwd(); err != nil {
+		// If we cannot get the current working directory, log the error and exit.
+		log.Fatalf("Failed to get current working directory: %v", err)
+	} else if !strings.Contains(wd, "/mock_x_api") {
+		// If not at the desired directory, change the working directory to the mock_x_api directory
+		if err := os.Chdir("./src/mock_x_api/"); err != nil {
+			log.Fatalf("Failed to change working directory: %v", err)
+		}
+	} 
+
 	// Start the HTTP server.
 	log.Printf("Starting Mock X API server on :%s", port)
 	log.Println("Streaming endpoint available at http://localhost:8080/2/tweets/search/stream")
@@ -87,7 +100,7 @@ func streamTweetsHandler(w http.ResponseWriter, r *http.Request) {
 	// Open the CSV file.
 	file, err := os.Open(csvFilePath)
 	if err != nil {
-		log.Printf("Error opening CSV file: %v", err)
+		log.Printf("Error opening CSV file: %v from path: %s", err, csvFilePath)
 		http.Error(w, "Could not read tweet data source.", http.StatusInternalServerError)
 		return
 	}

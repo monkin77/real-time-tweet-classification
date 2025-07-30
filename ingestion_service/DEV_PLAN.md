@@ -64,15 +64,61 @@ KAFKA_TOPIC="raw_tweets"
 DEV_MOCK_STREAM="true"
 ```
 
-## 4. How to Run
+## 4. How to Set Up and Run
+**Step 1: Initialize Go Module**
+
+In your terminal, inside the ingestion-service directory, initialize the Go module.
+
+```bash
+go mod init github.com/your-username/ingestion-service
+```
+
+**Step 2: Install Dependencies**
+Get the necessary Go libraries.
+
+```
+# Redis client
+go get github.com/go-redis/redis/v8
+
+# Kafka client (requires librdkafka)
+# See https://github.com/confluentinc/confluent-kafka-go for installation details
+go get github.com/confluentinc/confluent-kafka-go/v2/kafka
+
+# For loading .env files
+go get github.com/joho/godotenv
+```
+
+**Step 3: Running the Service**
 The application is run from the cmd directory.
 
-### Data Ingestion Client
 ```bash
-./client.sh
+go run ./cmd/main.go
 ```
 
-### Mock X API Server
-```bash
-./mock_server.sh
-```
+The service will:
+
+1. Load configuration from the .env file.
+2. Check the DEV_MOCK_STREAM flag.
+3. Initialize the specified publisher (Redis or Kafka).
+4. Start streaming tweets (either from the live API or a local file) and publish them.
+
+## 5. Development vs. Production (Mocking the Stream)
+To avoid hitting X API rate limits during development, the service includes a mock streamer.
+
+### How it works:
+
+- When `DEV_MOCK_STREAM` is set to `"true"` in your .env file, the service will not connect to the X API.
+
+- Instead, it will read from a local file (e.g., `tweets.csv` from the Kaggle competition) and publish each line to the message queue on a timer, simulating a live stream.
+
+- This allows you to develop and test the entire downstream pipeline (inference, storage, dashboard) without making a single live API call.
+
+### To use the mock streamer:
+
+1. Place your tweets.csv file in the project's root directory.
+2. Set DEV_MOCK_STREAM="true" in your .env file.
+3. Implement the file-reading logic within your twitter/stream.go file, guarded by a check for the config flag.
+
+---
+
+This README provides a complete starting point. You can now begin to fill in the Go code for each file, starting with the configuration, then the publisher, and finally the streaming logic.
