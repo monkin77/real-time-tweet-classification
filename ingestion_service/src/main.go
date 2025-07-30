@@ -11,7 +11,7 @@ func main() {
 
 	// Initialize the X API Client (inline for now)
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		// Print the requested path
+		// Print the requested path -- Response
 		fmt.Fprintf(w, "Hello, you've requested %s\n", r.URL.Path)
 	})
 
