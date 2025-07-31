@@ -19,6 +19,9 @@ import (
 
 	// External libraries
 	"github.com/joho/godotenv"
+
+	// Project's Packages
+	"github.com/monkin77/ingestion_service/src/config"
 )
 
 // Tweet represents the structure of a single tweet object that we will stream.
@@ -57,26 +60,34 @@ func main() {
 
 	// Load environment variables and define the port for the mock API server.
 	godotenv.Load(".env") // Load the Environment Variables from the .env file
-	port := os.Getenv("MOCK_API_PORT")
+	cfg, err := config.LoadConfig(false)	// Load configuration for the mock API mode
+	if err != nil {
+		log.Fatalf("Error loading configuration: %v", err)
+	}
+
+	port, hostname := cfg.MockAPIPort, cfg.MockAPIHost
 	if port == "" {
 		log.Fatalf("MOCK_API_PORT is not set in the environment variables. Please set it in the .env file.")
 	}
 
 	// ======  Set the working directory to the directory of this file ====== 
-	// This is necessary to ensure the CSV file can be found relative to this file's location
-	if wd, err := os.Getwd(); err != nil {
-		// If we cannot get the current working directory, log the error and exit.
-		log.Fatalf("Failed to get current working directory: %v", err)
-	} else if !strings.Contains(wd, "/mock_x_api") {
-		// If not at the desired directory, change the working directory to the mock_x_api directory
-		if err := os.Chdir("./src/mock_x_api/"); err != nil {
-			log.Fatalf("Failed to change working directory: %v", err)
-		}
-	} 
+	if !cfg.DockerMode {
+		// If not running in Docker mode, we need to ensure the working directory is set correctly.
+		// This is necessary to ensure the CSV file can be found relative to this file's location
+		if wd, err := os.Getwd(); err != nil {
+			// If we cannot get the current working directory, log the error and exit.
+			log.Fatalf("Failed to get current working directory: %v", err)
+		} else if !strings.Contains(wd, "/mock_x_api") {
+			// If not at the desired directory, change the working directory to the mock_x_api directory
+			if err := os.Chdir("./src/mock_x_api/"); err != nil {
+				log.Fatalf("Failed to change working directory: %v", err)
+			}
+		} 
+	}
 
 	// Start the HTTP server.
 	log.Printf("Starting Mock X API server on :%s", port)
-	log.Println("Streaming endpoint available at http://localhost:8080/2/tweets/search/stream")
+	log.Println("Streaming endpoint available at http://" + hostname + ":" + port + "/2/tweets/search/stream")
 	log.Printf("Reading tweets from: %s", csvFilePath)
 
 	if err := http.ListenAndServe(":"+port, nil); err != nil {

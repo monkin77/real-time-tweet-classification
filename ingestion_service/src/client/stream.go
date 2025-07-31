@@ -22,7 +22,8 @@ func StreamTweets(cfg *config.Config, pub publisher.Publisher) error {
 	)
 
 	if cfg.DevMockStream {
-		apiURL = "http://localhost:" + cfg.MockAPIPort
+		// Use the Hostname and Port from the configuration for the mock API.
+		apiURL = "http://" + cfg.MockAPIHost + ":" + cfg.MockAPIPort
 		log.Printf("Using Mock API for development. URL: %s\n\n", apiURL)
 	} else {
 		apiURL = "https://api.x.com"

@@ -1,0 +1,50 @@
+# Dockerfile - Defines the Build Process of the Image for the Ingestion Service
+# Essentially, sets up an image that can run the ingestion client and the mock API Containers.
+
+# Stage 1: Builder
+# Use the official Go image as a parent image.
+# Using alpine for a smaller image size, matching your Go version requirement.
+FROM golang:1.24.5-alpine AS builder
+
+# Set the working directory inside the container.
+WORKDIR /app
+
+# Copy go.mod and go.sum to download dependencies first,
+# leveraging Docker's layer caching for faster subsequent builds.
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy the rest of the application's source code.
+# Your source code is in a 'src' directory.
+COPY src/ ./src/
+
+# Build the ingestion client application.
+# CGO_ENABLED=0 is important for creating a static binary that works in minimal containers.
+RUN CGO_ENABLED=0 GOOS=linux go build -o /ingestion_client ./src/main.go
+
+# Build the mock API server application.
+RUN CGO_ENABLED=0 GOOS=linux go build -o /mock_api_server ./src/mock_x_api/mock_api.go
+
+# Stage 2: Final image
+# Use a minimal base image for the final container to keep it small and secure.
+FROM alpine:latest
+
+# Set the working directory.
+WORKDIR /app
+
+# Copy the compiled binaries from the builder stage.
+COPY --from=builder /ingestion_client .
+COPY --from=builder /mock_api_server .
+
+# The mock API needs the dataset. This assumes the dataset is in src/mock_x_api/dataset
+COPY src/mock_x_api/dataset ./dataset
+
+# Copy and set up the entrypoint script that will choose which binary to run.
+COPY entrypoint.sh .
+RUN chmod +x ./entrypoint.sh
+
+# Expose the port the mock API server runs on.
+EXPOSE 8080
+
+# Set the entrypoint. This will run when the container starts.
+ENTRYPOINT ["./entrypoint.sh"]

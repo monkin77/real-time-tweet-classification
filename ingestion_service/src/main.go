@@ -14,7 +14,7 @@ import (
 func main() {
 	// Load environment variables and define the API URL based on the DEV_MOCK_STREAM flag.
 	godotenv.Load(".env") // Load the Environment Variables from the .env file
-	cfg, err := config.LoadConfig()
+	cfg, err := config.LoadConfig(true)	// Load configuration for the client mode
 	if err != nil {
 		log.Fatalf("Error loading configuration: %v", err)
 	}

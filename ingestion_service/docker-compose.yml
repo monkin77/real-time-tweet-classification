@@ -1,0 +1,73 @@
+# Version 3.8 of Docker Compose
+version: '3.8'
+
+# This Docker Compose file sets up the development environment for the
+# Data Ingestion part of the project. It includes:
+# 1. Redis: A message broker for publishing raw tweets.
+# 2. Mock API: A service that simulates the X API stream, built from our Go code.
+# 3. Ingestion Client: The main service that "fetches" from the mock API and
+#    publishes to Redis, also built from our Go code.
+
+# There are 3 services defined in this file, each with its own configuration.
+services:
+  # Redis service for Pub/Sub messaging
+  redis:
+    image: "redis:7-alpine"
+    container_name: redis_broker
+    ports:
+      # Expose Redis on the host machine for debugging purposes
+      - "6379:6379"
+    networks:
+      # Connect Redis to the custom network for inter-service communication
+      - disaster-net
+
+  # Mock API service to simulate the X API stream
+  mock-api:
+    # Build configuration for the mock API service
+    build:
+      context: ./                   # Build context is the ingestion_service directory
+      dockerfile: Dockerfile        # Use the Dockerfile in the ingestion_service directory
+    image: disaster-tweets-ingestion:latest # Tag the image used to run the container
+    container_name: mock_api_server # Name of the container for easy identification
+    environment:
+      # This variable is read by entrypoint.sh to run the correct binary
+      - SERVICE_TO_RUN=mock_api
+      - TWITTER_BEARER_TOKEN=dummy_token_not_used_in_mock_mode
+      - MOCK_API_HOST=mock-api  
+      - MOCK_API_PORT=8080
+    ports:
+      # Expose the mock API port to the host for easy access/testing
+      - "8080:8080"
+    networks:
+      # Connect to the custom network for inter-service communication
+      - disaster-net
+
+  # Data Ingestion Client service
+  ingestion-client:
+    # Build configuration for the ingestion client service
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    image: disaster-tweets-ingestion:latest   # Tag the image used to run the container
+    container_name: ingestion_client          # Name of the container for easy identification
+    environment:
+      - SERVICE_TO_RUN=client   # Variable used by entrypoint.sh to run the correct binary
+      - DEV_MOCK_STREAM=true    # Specify that we are connecting to the mock X API (Dev Mode)
+      # Docker networking uses the service name as the hostname. In this case, the mock API service is named "mock-api".
+      - MOCK_API_HOST=mock-api  
+      - MOCK_API_PORT=8080
+      - PUBLISHER_TYPE=redis
+      - REDIS_ADDR=redis:6379 # Docker networking uses the service name
+      - REDIS_CHANNEL=raw_tweets
+      - TWITTER_BEARER_TOKEN=dummy_token_not_used_in_mock_mode
+    depends_on:
+      - redis
+      - mock-api
+    networks:
+      - disaster-net
+
+# Define the network that allows containers to communicate with each other
+networks:
+  # Custom bridge network for the services to communicate
+  disaster-net:
+    driver: bridge
