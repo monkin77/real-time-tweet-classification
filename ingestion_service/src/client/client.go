@@ -11,7 +11,7 @@ import (
 // External libraries
 func Client(cfg *config.Config) {
 	// Print an hello message
-	println("Hello, Ingestion Service!")
+	println("Ingestion Client Online!")
 
 	// Initialize the publisher based on the configuration.
 	publisherInstance, err := publisher.NewPublisher(cfg)

@@ -32,9 +32,6 @@ services:
     environment:
       # This variable is read by entrypoint.sh to run the correct binary
       - SERVICE_TO_RUN=mock_api
-      - TWITTER_BEARER_TOKEN=dummy_token_not_used_in_mock_mode
-      - MOCK_API_HOST=mock-api  
-      - MOCK_API_PORT=8080
     ports:
       # Expose the mock API port to the host for easy access/testing
       - "8080:8080"
@@ -53,13 +50,9 @@ services:
     environment:
       - SERVICE_TO_RUN=client   # Variable used by entrypoint.sh to run the correct binary
       - DEV_MOCK_STREAM=true    # Specify that we are connecting to the mock X API (Dev Mode)
+      
       # Docker networking uses the service name as the hostname. In this case, the mock API service is named "mock-api".
-      - MOCK_API_HOST=mock-api  
-      - MOCK_API_PORT=8080
-      - PUBLISHER_TYPE=redis
-      - REDIS_ADDR=redis:6379 # Docker networking uses the service name
-      - REDIS_CHANNEL=raw_tweets
-      - TWITTER_BEARER_TOKEN=dummy_token_not_used_in_mock_mode
+      # -MOCK_API_HOST="mock-api" -> Defined in .env.docker_mock
     depends_on:
       - redis
       - mock-api

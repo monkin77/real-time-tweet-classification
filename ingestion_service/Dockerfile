@@ -36,6 +36,9 @@ WORKDIR /app
 COPY --from=builder /ingestion_client .
 COPY --from=builder /mock_api_server .
 
+# Copy the environment variables file to the final image (Change name to .env if needed).
+COPY .env.docker_mock .env
+
 # The mock API needs the dataset. This assumes the dataset is in src/mock_x_api/dataset
 COPY src/mock_x_api/dataset ./dataset
 
