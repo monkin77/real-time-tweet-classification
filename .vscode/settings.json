@@ -1,0 +1,6 @@
+{
+    // This file contains settings for the VS Code Python extension.
+
+
+    "python-envs.pythonProjects": []    // Define Python projects to be recognized by the extension.
+}
