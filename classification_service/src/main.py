@@ -8,6 +8,9 @@ import httpx
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 from typing import List
+from pub_sub.publisher.publisher import Publisher
+from pub_sub.publisher.kafka_pub import KafkaPub
+from pub_sub.publisher.create_publisher import create_publisher
 
 # --- Configuration ---
 # Load configuration from environment variables
@@ -50,6 +53,8 @@ class ClassifiedTweet(BaseModel):
 # -----------------------------------------------------
 # --- Lifespan Server Events (Startup and Shutdown) ---
 # -----------------------------------------------------
+http_client: httpx.AsyncClient
+producer: Publisher
 async def startup_handler():
     '''
     Lifespan context manager to handle startup and shutdown events.
@@ -57,7 +62,7 @@ async def startup_handler():
     '''
     print("--- Starting Inference Service ---")
 
-    global http_client, kafka_producer, redis_client
+    global http_client, producer
     
     print("--- Starting Inference Service ---")
     
@@ -65,13 +70,10 @@ async def startup_handler():
     http_client = httpx.AsyncClient()
     
     # Initialize the appropriate publisher client based on config
-    if PUBLISHER_TYPE == "kafka":
-        print(f"Initializing Kafka producer for topic: {KAFKA_PUB_TOPIC}")
-        kafka_producer = None # AIOKafkaProducer(bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS)
-        await kafka_producer.start()
-    elif PUBLISHER_TYPE == "redis":
-        print(f"Initializing Redis client for publishing to channel: {REDIS_PUB_CHANNEL}")
-        redis_client = None     # redis.from_url(REDIS_ADDR, decode_responses=True)
+    producer = create_publisher(
+        publisher_type=PUBLISHER_TYPE,
+        bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS
+    )
     
     # Start the message consumer as a background task
     print(f"Starting {CONSUMER_TYPE} consumer as a background task...")
@@ -84,10 +86,8 @@ async def shutdown_handler():
 
     if http_client:
         await http_client.aclose()
-    if kafka_producer:
-        await kafka_producer.stop()
-    if redis_client:
-        await redis_client.close()
+    if producer:
+        await producer.close()
     
     print("--- Shutdown Complete ---")
 

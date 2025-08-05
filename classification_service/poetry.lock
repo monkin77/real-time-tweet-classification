@@ -335,6 +335,25 @@ MarkupSafe = ">=2.0"
 i18n = ["Babel (>=2.7)"]
 
 [[package]]
+name = "kafka-python"
+version = "2.2.15"
+description = "Pure Python client for Apache Kafka"
+optional = false
+python-versions = "*"
+files = [
+    {file = "kafka_python-2.2.15-py2.py3-none-any.whl", hash = "sha256:84c0993cd4f7f2f01e92d8104ea9bdf631aff72fc5e6ea62eb3bdf1d56528fc3"},
+    {file = "kafka_python-2.2.15.tar.gz", hash = "sha256:e0f480a45f3814cb0eb705b8b4f61069e1be61dae0d8c69d0f1f2da33eea1bd5"},
+]
+
+[package.extras]
+benchmarks = ["pyperf"]
+crc32c = ["crc32c"]
+lz4 = ["lz4"]
+snappy = ["python-snappy"]
+testing = ["mock", "pytest", "pytest-mock", "pytest-timeout"]
+zstd = ["zstandard"]
+
+[[package]]
 name = "markdown-it-py"
 version = "3.0.0"
 description = "Python port of markdown-it. Markdown parsing, done right!"
@@ -1270,4 +1289,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "4912ee665f8dab63abfafe12ff1c657044ef2dbf58b604b6d946e961b99e213a"
+content-hash = "5964ee4330707f52f9c6e0f9bc6ff8c5a011118fb41e50b993d9e3cd3d5542b5"
