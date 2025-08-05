@@ -5,7 +5,7 @@ import random
 import httpx
 # import redis.asyncio as redis
 # from aiokafka import AIOKafkaConsumer, AIOKafkaProducer
-from fastapi import FastAPI, HTTPException, on_event
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 from typing import List
 
@@ -36,7 +36,7 @@ class RawTweet(BaseModel):
 
 class ClassificationResult(BaseModel):
     """Represents the response from the ML model API."""
-    label: str
+    label: str  # TODO: Define the possible labels with an Enum
     confidence: float
 
 class ClassifiedTweet(BaseModel):
@@ -47,23 +47,16 @@ class ClassifiedTweet(BaseModel):
     confidence: float
 
 
-# --- FastAPI Application Setup ---
-app = FastAPI(
-    title="Inference Service",
-    description="Consumes tweets, classifies them, and publishes the results.",
-)
+# -----------------------------------------------------
+# --- Lifespan Server Events (Startup and Shutdown) ---
+# -----------------------------------------------------
+async def startup_handler():
+    '''
+    Lifespan context manager to handle startup and shutdown events.
+    Async keyword is used to allow asynchronous operations during startup.
+    '''
+    print("--- Starting Inference Service ---")
 
-# Global clients that will be initialized on startup
-# http_client: httpx.AsyncClient = None
-# kafka_producer: AIOKafkaProducer = None
-# redis_client: redis.Redis = None
-
-
-# --- Lifespan Events (Startup and Shutdown) ---
-
-@app.on_event("startup")
-async def startup_event():
-    """Initializes all necessary clients and starts the background consumer task."""
     global http_client, kafka_producer, redis_client
     
     print("--- Starting Inference Service ---")
@@ -74,34 +67,55 @@ async def startup_event():
     # Initialize the appropriate publisher client based on config
     if PUBLISHER_TYPE == "kafka":
         print(f"Initializing Kafka producer for topic: {KAFKA_PUB_TOPIC}")
-        kafka_producer = AIOKafkaProducer(bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS)
+        kafka_producer = None # AIOKafkaProducer(bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS)
         await kafka_producer.start()
     elif PUBLISHER_TYPE == "redis":
         print(f"Initializing Redis client for publishing to channel: {REDIS_PUB_CHANNEL}")
-        redis_client = redis.from_url(REDIS_ADDR, decode_responses=True)
+        redis_client = None     # redis.from_url(REDIS_ADDR, decode_responses=True)
     
     # Start the message consumer as a background task
     print(f"Starting {CONSUMER_TYPE} consumer as a background task...")
-    asyncio.create_task(run_consumer())
+    asyncio.create_task(run_consumer()) # This will run indefinitely in the background
 
 
-@app.on_event("shutdown")
-async def shutdown_event():
+async def shutdown_handler():
     """Cleans up resources on application shutdown."""
-    print("--- Shutting Down Inference Service ---")
+    print("--- Shutting Down Inference Service... ---")
+
     if http_client:
         await http_client.aclose()
     if kafka_producer:
         await kafka_producer.stop()
     if redis_client:
         await redis_client.close()
+    
     print("--- Shutdown Complete ---")
 
 
-# --- Core Logic ---
+# -------------------------------------
+# --- FastAPI Server Initialization ---
+# -------------------------------------
+app = FastAPI(
+    title="Inference Service",
+    description="Consumes tweets, classifies them, and publishes the results.",
+    on_startup=[startup_handler],
+    on_shutdown=[shutdown_handler]
+)
 
+# Global clients that will be initialized on startup
+http_client: httpx.AsyncClient = None
+# kafka_producer: AIOKafkaProducer = None
+# redis_client: redis.Redis = None
+
+
+
+# -------------------------------------
+# ---------- Core Logic ---------------
+# -------------------------------------
 async def classify_tweet(text: str) -> ClassificationResult:
-    """Sends tweet text to the external ML model API for classification."""
+    """
+    Sends tweet text to the external ML model API for classification.
+    """
     try:
         response = await http_client.post(MODEL_API_ENDPOINT, json={"text": text}, timeout=10.0)
         response.raise_for_status()  # Raise an exception for bad status codes (4xx or 5xx)
@@ -115,16 +129,26 @@ async def classify_tweet(text: str) -> ClassificationResult:
 
 
 async def publish_message(payload: dict):
-    """Publishes the classified tweet to the appropriate message queue."""
+    """
+    Publishes the classified tweet to the appropriate message queue.
+    """
+    # Convert the payload to a JSON byte string
     message = json.dumps(payload).encode("utf-8")
+
+    # Send the message to the appropriate publisher based on configuration
+    print(f"TODO: Publish message to {PUBLISHER_TYPE} channel/topic")
+    """
     if PUBLISHER_TYPE == "kafka" and kafka_producer:
         await kafka_producer.send_and_wait(KAFKA_PUB_TOPIC, message)
     elif PUBLISHER_TYPE == "redis" and redis_client:
         await redis_client.publish(REDIS_PUB_CHANNEL, message)
+        """
 
 
 async def process_message(message_data: bytes):
-    """The main processing pipeline for a single message."""
+    """
+    The main processing pipeline for a single message.
+    """
     try:
         # 1. Parse and validate the incoming message
         raw_tweet = RawTweet.parse_raw(message_data)
@@ -148,9 +172,9 @@ async def process_message(message_data: bytes):
     except Exception as e:
         print(f"Failed to process message. Error: {e}. Message: {message_data[:200]}...")
 
-
-# --- Background Consumer Task ---
-
+# ---------------------------------------------------
+# ---------- Background Consumer Task ---------------
+# ---------------------------------------------------
 async def run_consumer():
     """Runs the appropriate consumer based on the environment configuration."""
     if CONSUMER_TYPE == "kafka":
@@ -163,7 +187,7 @@ async def run_consumer():
 
 async def consume_from_kafka():
     """Continuously consumes messages from a Kafka topic."""
-    consumer = AIOKafkaConsumer(
+    """ consumer = AIOKafkaConsumer(
         KAFKA_SUB_TOPIC,
         bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,
         group_id=KAFKA_CONSUMER_GROUP_ID,
@@ -175,13 +199,15 @@ async def consume_from_kafka():
         async for msg in consumer:
             await process_message(msg.value)
     finally:
-        await consumer.stop()
-
+        await consumer.stop() """
+    pass
 
 async def consume_from_redis():
     """Continuously consumes messages from a Redis Pub/Sub channel."""
     # Note: We create a new client here because the one for publishing
     # cannot be used for blocking pub/sub operations simultaneously.
+
+    """ 
     sub_client = redis.from_url(REDIS_ADDR)
     pubsub = sub_client.pubsub()
     await pubsub.subscribe(REDIS_SUB_CHANNEL)
@@ -191,18 +217,16 @@ async def consume_from_redis():
             if message["type"] == "message":
                 await process_message(message["data"])
     finally:
-        await sub_client.close()
+        await sub_client.close() 
+    """
+    pass
 
 
-# --- API Endpoint (for health checks) ---
+# --- API Endpoints ---
 
 @app.get("/")
-def read_root():
+async def root():
     """A simple health check endpoint."""
     return {"status": "Inference Service is running"}
 
-# To run this application:
-# 1. Save it as `main.py`.
-# 2. Install dependencies: pip install fastapi uvicorn httpx "redis[hiredis]" aiokafka
-# 3. Set your environment variables (e.g., in a .env file and use a loader).
-# 4. Run with uvicorn: uvicorn main:app --reload
+
