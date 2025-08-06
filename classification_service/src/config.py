@@ -15,12 +15,15 @@ class Config:
     CONSUMER_TOPIC: Optional[str] = None
     PUBLISHER_TOPIC: Optional[str] = None
 
+    STREAM_BASE_URL: Optional[str] = None
+    STREAM_PORT: Optional[int] = None
+    STREAM_ADDR: Optional[str] = None  # This will be constructed as "STREAM_BASE_URL:STREAM_PORT"
+
+
     # Redis configuration
-    REDIS_ADDR: Optional[str]
     REDIS_PASSWORD: Optional[str]
 
     # Kafka configuration
-    KAFKA_BOOTSTRAP_SERVERS: Optional[str]
     KAFKA_CONSUMER_GROUP_ID: Optional[str]
 
     # AI Model API configuration
@@ -38,21 +41,20 @@ class Config:
             os.getenv("RUN_MOCK_MODEL_API", "false")
         )
 
-        # Conditionally required fields (based on type)
-        if self.PUB_SUB_TYPE == "kafka":
-            self.KAFKA_BOOTSTRAP_SERVERS = self._require("KAFKA_BOOTSTRAP_SERVERS")
-        else:
-            self.KAFKA_BOOTSTRAP_SERVERS = None
+        # Check the Stream Base URL and Port
+        self.STREAM_BASE_URL = self._require("STREAM_BASE_URL")
+        self.STREAM_PORT = int(self._require("STREAM_PORT"))
+        # Validate the Stream Address
+        if not self.STREAM_BASE_URL or not self.STREAM_PORT:
+            raise ConfigError("STREAM_BASE_URL and STREAM_PORT must be set and valid")
+        self.STREAM_ADDR = f"{self.STREAM_BASE_URL}:{self.STREAM_PORT}"
 
+
+        # Conditionally required fields (based on type)
         if self.PUB_SUB_TYPE == "kafka":
             self.KAFKA_CONSUMER_GROUP_ID = self._require("KAFKA_CONSUMER_GROUP_ID")
         else:
             self.KAFKA_CONSUMER_GROUP_ID = None
-
-        if self.PUB_SUB_TYPE == "redis":
-            self.REDIS_ADDR = self._require("REDIS_ADDR")
-        else:
-            self.REDIS_ADDR = None
 
         # Validate the Channel Topics
         self.CONSUMER_TOPIC = self._require("CONSUMER_TOPIC")
@@ -71,16 +73,6 @@ class Config:
     def _cast_bool(self, val) -> bool:
         return str(val).strip().lower() in {"1", "true", "yes"}
     
-    def get_stream_url(self) -> str:
-        '''
-        Returns the stream URL based on the PUB_SUB_TYPE.
-        '''
-        if self.PUB_SUB_TYPE == "kafka":
-            return self.KAFKA_BOOTSTRAP_SERVERS
-        elif self.PUB_SUB_TYPE == "redis":
-            return self.REDIS_ADDR
-        else:
-            raise ValueError(f"Unsupported publisher type: {self.PUB_SUB_TYPE}")
 
 
 

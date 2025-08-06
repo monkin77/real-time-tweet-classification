@@ -4,7 +4,7 @@ class Subscriber():
     This class provides a common interface for consuming messages from different systems.
     E.g. Kafka, Redis, etc.
     '''
-    def __init__(self, consumer_type: str, bootstrap_servers: str | list[str], topic: str):
+    def __init__(self, consumer_type: str, base_url: str, port: int, topic: str):
         '''
         Initializes the Subscriber with the type and bootstrap servers.
         :param consumer_type: Type of the consumer (e.g., "kafka", "redis").
@@ -12,7 +12,8 @@ class Subscriber():
         :param topic: The topic to subscribe to.
         '''
         self.consumer_type = consumer_type
-        self.bootstrap_servers = bootstrap_servers
+        self.base_url = base_url
+        self.port = port
         self.topic = topic
 
         self.consumer = None  # This will be initialized in subclasses

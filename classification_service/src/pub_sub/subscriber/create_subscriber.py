@@ -1,7 +1,7 @@
 from .subscriber import Subscriber
 from .redis_sub import RedisSub
 
-def create_subscriber(subscriber_type: str, bootstrap_servers: str | list[str], topic: str) -> Subscriber:
+def create_subscriber(subscriber_type: str, base_url: str, port: int, topic: str) -> Subscriber:
     '''
     Factory Design Pattern for creating a Subscriber instance.
 
@@ -11,12 +11,12 @@ def create_subscriber(subscriber_type: str, bootstrap_servers: str | list[str], 
 
     :return: An instance of the Subscriber subclass corresponding to the Subscriber type.
     '''
-    print(f"Initializing Subscriber of type: {subscriber_type} with servers: {bootstrap_servers}")
+    print(f"Initializing Subscriber of type: {subscriber_type} listening on topic: {topic} at {base_url}:{port}")
 
     if subscriber_type == "kafka":
         pass
         # return KafkaPub(bootstrap_servers=bootstrap_servers)
     elif subscriber_type == "redis":
-        return RedisSub(bootstrap_servers=bootstrap_servers, topic=topic)
+        return RedisSub(base_url=base_url, port=port, topic=topic)
     else:
         raise ValueError(f"Unsupported publisher type: {subscriber_type}")

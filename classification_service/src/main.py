@@ -76,21 +76,20 @@ async def startup_handler():
 
     global http_client, producer, subscriber
 
-    print("--- Starting Inference Service ---")
-
     # Initialize a persistent HTTP client for making requests to the model API
     http_client = httpx.AsyncClient()
 
     # Initialize the appropriate publisher client based on config
     producer = create_publisher(
         publisher_type=config.PUB_SUB_TYPE,
-        bootstrap_servers=config.get_stream_url()
+        bootstrap_servers=config.STREAM_ADDR
     )
 
     # Initialize the appropriate subscriber client based on config
     subscriber = create_subscriber(
         subscriber_type=config.PUB_SUB_TYPE,
-        bootstrap_servers=config.get_stream_url(),
+        base_url=config.STREAM_BASE_URL,
+        port=config.STREAM_PORT,
         topic=config.CONSUMER_TOPIC
     )
 

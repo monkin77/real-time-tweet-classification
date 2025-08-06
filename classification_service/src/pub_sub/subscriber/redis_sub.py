@@ -1,18 +1,20 @@
 from .subscriber import Subscriber
-import redis
+import redis.asyncio as redis
 
 class RedisSub(Subscriber):
     '''
     Redis Consumer class.
     '''
-    def __init__(self, bootstrap_servers: str | list[str], topic: str):
+    def __init__(self, base_url: str, port: int, topic: str):
         '''
         Initializes the Redis consumer.
         :param bootstrap_servers: The address(es) of the Redis server(s).
         '''
-        super().__init__(consumer_type="redis", bootstrap_servers=bootstrap_servers, topic=topic)
+        super().__init__(consumer_type="redis", base_url=base_url, port=port, topic=topic)
 
-        self.sub_client = redis.from_url(self.bootstrap_servers)
+        # Create a Redis client
+        # Not using password?
+        self.sub_client = redis.Redis(host=base_url, port=port)
 
         # Initialize the Redis PubSub client
         self.pubsub = self.sub_client.pubsub()
@@ -27,6 +29,7 @@ class RedisSub(Subscriber):
         
         await self.pubsub.subscribe(self.topic)
         print(f"Redis consumer subscribed to channel '{self.topic}'. Waiting for messages...")
+
         try:
             async for message in self.pubsub.listen():
                 if message["type"] == "message":
