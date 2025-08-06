@@ -1,0 +1,10 @@
+# This file is used to specify files and directories that should be ignored by Docker when building images.
+# It is similar to .gitignore but specifically for Docker. It won't send these files to the Docker daemon.
+Dockerfile
+.dockerignore
+.git
+.gitignore
+.idea/
+.venv/
+__pycache__/
+*.pyc

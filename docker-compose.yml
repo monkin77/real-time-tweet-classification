@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  redis:
+    image: "redis:7-alpine"
+    container_name: redis_broker
+    ports:
+      - "6379:6379"
+    networks:
+      - disaster-net
+
+  # Mock API service to simulate the X API stream
+  mock-api:
+    # Build configuration for the mock API service
+    build:
+      context: ./ingestion_service                   # Build context is the ingestion_service directory
+      dockerfile: Dockerfile        # Use the Dockerfile in the ingestion_service directory
+    image: disaster-tweets-ingestion:latest # Tag the image used to run the container
+    container_name: mock_api_server # Name of the container for easy identification
+    environment:
+      # This variable is read by entrypoint.sh to run the correct binary
+      - SERVICE_TO_RUN=mock_api
+    ports:
+      # Expose the mock API port to the host for easy access/testing
+      - "8080:8080"
+    networks:
+      # Connect to the custom network for inter-service communication
+      - disaster-net
+
+  ingestion_service:
+    build:
+      context: ./ingestion_service
+      dockerfile: Dockerfile
+    image: disaster-tweets-ingestion:latest   # Tag the image used to run the container
+    container_name: ingestion_service
+    depends_on:
+      - redis
+      - mock-api
+    environment:
+      - SERVICE_TO_RUN=client   # Variable used by entrypoint.sh to run the correct binary
+      - DEV_MOCK_STREAM=true    # Specify that we are connecting to the mock X API (Dev Mode)
+    networks:
+      - disaster-net
+
+  classification_service:
+    build:
+      context: ./classification_service
+      dockerfile: Dockerfile
+    container_name: classification_service
+    image: classification_service:latest
+    depends_on:
+      - redis
+    ports:
+      - "8000:8000"
+    # environment:
+    
+    networks:
+      - disaster-net
+
+networks:
+  disaster-net:
+    driver: bridge
