@@ -1,5 +1,5 @@
-from publisher import Publisher
 from kafka import KafkaProducer
+from .publisher import Publisher
 
 TIMEOUT = 10  # Wait time for message to be sent (seconds)
 

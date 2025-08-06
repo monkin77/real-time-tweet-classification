@@ -9,12 +9,16 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 from typing import List
 from pub_sub.publisher.publisher import Publisher
-from pub_sub.publisher.kafka_pub import KafkaPub
 from pub_sub.publisher.create_publisher import create_publisher
+from config import Config
 
 # --- Configuration ---
+config = Config()
+
+print(f"Configuration loaded: {config.__dict__}")
+
 # Load configuration from environment variables
-CONSUMER_TYPE = os.getenv("CONSUMER_TYPE", "redis")
+""" CONSUMER_TYPE = os.getenv("CONSUMER_TYPE", "redis")
 PUBLISHER_TYPE = os.getenv("PUBLISHER_TYPE", "redis")
 REDIS_ADDR = os.getenv("REDIS_ADDR", "redis://localhost:6379")
 REDIS_SUB_CHANNEL = os.getenv("REDIS_SUB_CHANNEL", "raw_tweets")
@@ -23,7 +27,7 @@ KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
 KAFKA_CONSUMER_GROUP_ID = os.getenv("KAFKA_CONSUMER_GROUP_ID", "inference-group")
 KAFKA_SUB_TOPIC = os.getenv("KAFKA_SUB_TOPIC", "raw_tweets")
 KAFKA_PUB_TOPIC = os.getenv("KAFKA_PUB_TOPIC", "classified_tweets")
-MODEL_API_ENDPOINT = os.getenv("MODEL_API_ENDPOINT", "http://localhost:8001/predict")
+MODEL_API_ENDPOINT = os.getenv("MODEL_API_ENDPOINT", "http://localhost:8001/predict") """
 
 
 # --- Pydantic Models for Data Validation ---
@@ -71,12 +75,12 @@ async def startup_handler():
     
     # Initialize the appropriate publisher client based on config
     producer = create_publisher(
-        publisher_type=PUBLISHER_TYPE,
-        bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS
+        publisher_type=config.PUB_SUB_TYPE,
+        bootstrap_servers=config.get_stream_url()
     )
     
     # Start the message consumer as a background task
-    print(f"Starting {CONSUMER_TYPE} consumer as a background task...")
+    print(f"Starting {config.PUB_SUB_TYPE} consumer as a background task...")
     asyncio.create_task(run_consumer()) # This will run indefinitely in the background
 
 
@@ -117,7 +121,7 @@ async def classify_tweet(text: str) -> ClassificationResult:
     Sends tweet text to the external ML model API for classification.
     """
     try:
-        response = await http_client.post(MODEL_API_ENDPOINT, json={"text": text}, timeout=10.0)
+        response = await http_client.post(config.MODEL_API_ENDPOINT, json={"text": text}, timeout=10.0)
         response.raise_for_status()  # Raise an exception for bad status codes (4xx or 5xx)
         data = response.json()
         return ClassificationResult(**data)
@@ -177,12 +181,12 @@ async def process_message(message_data: bytes):
 # ---------------------------------------------------
 async def run_consumer():
     """Runs the appropriate consumer based on the environment configuration."""
-    if CONSUMER_TYPE == "kafka":
+    if config.PUB_SUB_TYPE == "kafka":
         await consume_from_kafka()
-    elif CONSUMER_TYPE == "redis":
+    elif config.PUB_SUB_TYPE == "redis":
         await consume_from_redis()
     else:
-        print(f"Error: Invalid CONSUMER_TYPE '{CONSUMER_TYPE}'. Exiting.")
+        print(f"Error: Invalid CONSUMER_TYPE '{config.PUB_SUB_TYPE}'. Exiting.")
 
 
 async def consume_from_kafka():

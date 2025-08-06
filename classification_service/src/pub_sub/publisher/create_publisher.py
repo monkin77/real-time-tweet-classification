@@ -1,5 +1,5 @@
-from publisher import Publisher
-from kafka_pub import KafkaPub
+from .publisher import Publisher
+from .kafka_pub import KafkaPub
 # from redis_pub import RedisPub
 
 def create_publisher(publisher_type: str, bootstrap_servers: str | list[str]) -> Publisher:
