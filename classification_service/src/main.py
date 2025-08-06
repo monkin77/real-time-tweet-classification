@@ -10,6 +10,8 @@ from pydantic import BaseModel, Field
 from typing import List
 from pub_sub.publisher.publisher import Publisher
 from pub_sub.publisher.create_publisher import create_publisher
+from pub_sub.subscriber.subscriber import Subscriber
+from pub_sub.subscriber.create_subscriber import create_subscriber
 from config import Config
 
 # --- Configuration ---
@@ -37,14 +39,17 @@ class RawTweetData(BaseModel):
     id: str
     text: str
 
+
 class RawTweet(BaseModel):
     """Represents the full structure of an incoming raw tweet message."""
     data: RawTweetData
+
 
 class ClassificationResult(BaseModel):
     """Represents the response from the ML model API."""
     label: str  # TODO: Define the possible labels with an Enum
     confidence: float
+
 
 class ClassifiedTweet(BaseModel):
     """Represents the final, enriched data to be published."""
@@ -59,6 +64,9 @@ class ClassifiedTweet(BaseModel):
 # -----------------------------------------------------
 http_client: httpx.AsyncClient
 producer: Publisher
+subscriber: Subscriber
+
+
 async def startup_handler():
     '''
     Lifespan context manager to handle startup and shutdown events.
@@ -66,22 +74,30 @@ async def startup_handler():
     '''
     print("--- Starting Inference Service ---")
 
-    global http_client, producer
-    
+    global http_client, producer, subscriber
+
     print("--- Starting Inference Service ---")
-    
+
     # Initialize a persistent HTTP client for making requests to the model API
     http_client = httpx.AsyncClient()
-    
+
     # Initialize the appropriate publisher client based on config
     producer = create_publisher(
         publisher_type=config.PUB_SUB_TYPE,
         bootstrap_servers=config.get_stream_url()
     )
-    
+
+    # Initialize the appropriate subscriber client based on config
+    subscriber = create_subscriber(
+        subscriber_type=config.PUB_SUB_TYPE,
+        bootstrap_servers=config.get_stream_url(),
+        topic=config.CONSUMER_TOPIC
+    )
+
     # Start the message consumer as a background task
     print(f"Starting {config.PUB_SUB_TYPE} consumer as a background task...")
-    asyncio.create_task(run_consumer()) # This will run indefinitely in the background
+    # This will run indefinitely in the background
+    asyncio.create_task(run_consumer())
 
 
 async def shutdown_handler():
@@ -92,7 +108,7 @@ async def shutdown_handler():
         await http_client.aclose()
     if producer:
         await producer.close()
-    
+
     print("--- Shutdown Complete ---")
 
 
@@ -110,7 +126,6 @@ app = FastAPI(
 http_client: httpx.AsyncClient = None
 # kafka_producer: AIOKafkaProducer = None
 # redis_client: redis.Redis = None
-
 
 
 # -------------------------------------
@@ -140,7 +155,7 @@ async def publish_message(payload: dict):
     message = json.dumps(payload).encode("utf-8")
 
     # Send the message to the appropriate publisher based on configuration
-    print(f"TODO: Publish message to {PUBLISHER_TYPE} channel/topic")
+    print(f"TODO: Publish message to {config.PUB_SUB_TYPE} channel/topic")
     """
     if PUBLISHER_TYPE == "kafka" and kafka_producer:
         await kafka_producer.send_and_wait(KAFKA_PUB_TOPIC, message)
@@ -156,10 +171,10 @@ async def process_message(message_data: bytes):
     try:
         # 1. Parse and validate the incoming message
         raw_tweet = RawTweet.parse_raw(message_data)
-        
+
         # 2. Classify the tweet text by calling the model API
         classification = await classify_tweet(raw_tweet.data.text)
-        
+
         # 3. Create the enriched payload
         classified_tweet = ClassifiedTweet(
             id=raw_tweet.data.id,
@@ -167,26 +182,32 @@ async def process_message(message_data: bytes):
             label=classification.label,
             confidence=classification.confidence,
         )
-        
+
         # 4. Publish the classified tweet
         await publish_message(classified_tweet.dict())
-        
-        print(f"Successfully processed and published tweet ID: {classified_tweet.id}")
+
+        print(
+            f"Successfully processed and published tweet ID: {classified_tweet.id}")
 
     except Exception as e:
-        print(f"Failed to process message. Error: {e}. Message: {message_data[:200]}...")
+        print(
+            f"Failed to process message. Error: {e}. Message: {message_data[:200]}...")
 
 # ---------------------------------------------------
 # ---------- Background Consumer Task ---------------
 # ---------------------------------------------------
+
+
 async def run_consumer():
     """Runs the appropriate consumer based on the environment configuration."""
-    if config.PUB_SUB_TYPE == "kafka":
+    await subscriber.consume()
+
+    """ if config.PUB_SUB_TYPE == "kafka":
         await consume_from_kafka()
     elif config.PUB_SUB_TYPE == "redis":
         await consume_from_redis()
     else:
-        print(f"Error: Invalid CONSUMER_TYPE '{config.PUB_SUB_TYPE}'. Exiting.")
+        print(f"Error: Invalid CONSUMER_TYPE '{config.PUB_SUB_TYPE}'. Exiting.") """
 
 
 async def consume_from_kafka():
@@ -205,6 +226,7 @@ async def consume_from_kafka():
     finally:
         await consumer.stop() """
     pass
+
 
 async def consume_from_redis():
     """Continuously consumes messages from a Redis Pub/Sub channel."""
@@ -232,5 +254,3 @@ async def consume_from_redis():
 async def root():
     """A simple health check endpoint."""
     return {"status": "Inference Service is running"}
-
-
