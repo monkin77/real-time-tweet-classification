@@ -75,10 +75,7 @@ func StreamTweets(cfg *config.Config, pub publisher.Publisher) error {
 			continue // Continue to the next tweet even if publishing fails
 		}
 
-		log.Println("Tweet published successfully.")
-
-		// For now, we just log the message.
-		log.Printf("Received tweet: %s\n", message)
+		log.Printf("Tweet %s published successfully.", message)
 	}
 
 	// Check for errors during scanning.

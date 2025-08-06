@@ -43,7 +43,7 @@ class RedisSub(Subscriber):
         """
         Processes a single message.
         """
-        print(f"Received message: {message_data[:200]}...")
+        print(f"[Inference Service] Received message: {message_data[:200]}...")
         # Implement your message processing logic here
 
     async def close(self):

@@ -50,6 +50,7 @@ services:
     image: classification_service:latest
     depends_on:
       - redis
+      - ingestion_service   # Ensure the ingestion service is up before starting classification
     ports:
       - "8000:8000"
     # environment:
