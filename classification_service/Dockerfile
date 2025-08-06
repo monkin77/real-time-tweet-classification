@@ -26,7 +26,7 @@ RUN poetry install
 # Copy the rest of the application source code
 COPY src/ ./src
 # Copy the .env file if it exists
-COPY .env ./
+COPY .env.docker .env
 
 # Stage 2: Create the final, lean image
 FROM python:3.10-slim
