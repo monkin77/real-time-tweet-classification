@@ -1,7 +1,7 @@
-from .common.preprocessor import preprocess
-from .common.labels import ClassifLabel, ClassificationResult
-from .models.base import BaseModel
-from .models.distil_bert.model import DistilBert
+from common.preprocessor import preprocess
+from common.labels import ClassifLabel, ClassificationResult
+from models.base import BaseModel
+from models.distil_bert.model import DistilBert
 from httpx import HTTPStatusError
 
 # Define the Used Classifier -- inside the models/ folder
