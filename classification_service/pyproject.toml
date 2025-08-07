@@ -11,6 +11,8 @@ python = "^3.10"
 fastapi = {extras = ["standard"], version = "^0.116.1"}
 kafka-python = "^2.2.15"
 redis = "^6.3.0"
+keras = "^3.11.1"
+keras-nlp = "^0.21.1"
 
 
 [build-system]

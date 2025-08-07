@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
 from enum import Enum
+from model_api.labels import ClassifLabel
 
 
 # --- Pydantic Models for Data Validation ---
@@ -16,12 +17,6 @@ class RawTweet(BaseModel):
     """Represents the full structure of an incoming raw tweet message."""
     data: RawTweetData
 
-
-class ClassifLabel(str, Enum):
-    """Enum for classification labels."""
-    DISASTER = "disaster"
-    NON_DISASTER = "non-disaster"
-    CLASSIFICATION_ERROR = "classification_error"
 
 class ClassificationResult(BaseModel):
     """Represents the response from the ML model API."""

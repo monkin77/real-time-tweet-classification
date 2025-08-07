@@ -11,7 +11,8 @@ from pub_sub.publisher.create_publisher import create_publisher
 from pub_sub.subscriber.subscriber import Subscriber
 from pub_sub.subscriber.create_subscriber import create_subscriber
 from config import Config
-from models import RawTweetData, ClassifiedTweet, ClassificationResult, ClassifLabel, RawTweet, PredictTweet
+from models import RawTweetData, ClassifiedTweet, ClassificationResult, RawTweet, PredictTweet
+from model_api.labels import ClassifLabel
 
 
 # -----------------------------------------------------

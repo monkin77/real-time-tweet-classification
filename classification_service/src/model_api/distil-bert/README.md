@@ -1,0 +1,2 @@
+# DistilBERT Model for Text Classification
+This directory contains the DistilBERT model fine-tuned for Tweet Classification, specifically for disaster-related tweets. The model is designed to classify tweets into two categories: "disaster" and "non-disaster".
