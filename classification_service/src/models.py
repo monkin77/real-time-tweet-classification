@@ -1,6 +1,5 @@
 from pydantic import BaseModel, Field
-from enum import Enum
-from model_api.labels import ClassifLabel
+from model_api.common.labels import ClassifLabel
 
 
 # --- Pydantic Models for Data Validation ---

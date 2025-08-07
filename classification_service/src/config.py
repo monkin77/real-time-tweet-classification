@@ -27,19 +27,26 @@ class Config:
     KAFKA_CONSUMER_GROUP_ID: Optional[str]
 
     # AI Model API configuration
+    SV_BASE_URL: str
+    SV_PORT: int
     MODEL_API_ENDPOINT: str
-    RUN_MOCK_MODEL_API: bool
 
     def __init__(self):
         load_dotenv(override=True)
 
         # Required fields (always required)
         self.PUB_SUB_TYPE = self._require("PUB_SUB_TYPE", choices={"kafka", "redis"})
-        self.MODEL_API_ENDPOINT = self._require("MODEL_API_ENDPOINT")
-        self.RUN_MOCK_MODEL_API = self._cast_bool(
+        self.SV_BASE_URL = self._require("SV_BASE_URL")
+        self.SV_PORT = int(self._require("SV_PORT"))
+        # Validate the AI Model API Endpoint
+        if not self.SV_BASE_URL or not self.SV_PORT:
+            raise ConfigError("SV_BASE_URL and SV_PORT must be set and valid")
+        self.MODEL_API_ENDPOINT = f"{self.SV_BASE_URL}:{self.SV_PORT}/predict"
+        
+        """ self.RUN_MOCK_MODEL_API = self._cast_bool(
             # Default to 'false' if not set
             os.getenv("RUN_MOCK_MODEL_API", "false")
-        )
+        ) """
 
         # Check the Stream Base URL and Port
         self.STREAM_BASE_URL = self._require("STREAM_BASE_URL")

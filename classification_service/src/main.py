@@ -1,3 +1,4 @@
+
 import asyncio
 import json
 import random
@@ -12,7 +13,8 @@ from pub_sub.subscriber.subscriber import Subscriber
 from pub_sub.subscriber.create_subscriber import create_subscriber
 from config import Config
 from models import RawTweetData, ClassifiedTweet, ClassificationResult, RawTweet, PredictTweet
-from model_api.labels import ClassifLabel
+from model_api.common.labels import ClassifLabel
+from model_api.inferencer import predict as classify_tweet_text
 
 
 # -----------------------------------------------------
@@ -82,7 +84,7 @@ app = FastAPI(
     title="Inference Service",
     description="Consumes tweets, classifies them, and publishes the results.",
     on_startup=[startup_handler],
-    on_shutdown=[shutdown_handler]
+    on_shutdown=[shutdown_handler],
 )
 
 
@@ -194,7 +196,7 @@ async def consume_from_kafka():
         auto_offset_reset='earliest'
     )
     await consumer.start()
-    print(f"Kafka consumer started for topic '{KAFKA_SUB_TOPIC}'. Waiting for messages...")
+    print(f"Kafka consumer started for topic '{KAFK_SUB_TOPIC}'. Waiting for messages...")
     try:
         async for msg in consumer:
             await process_message(msg.value)
@@ -221,7 +223,7 @@ async def predict(tweet: PredictTweet) -> ClassifiedTweet:
     print(f"Received tweet for classification: {tweet.text[:100]}...")
 
     # 1. Classify the tweet text by calling the model API
-    classification = await classify_tweet(tweet.text)
+    classification = classify_tweet_text(tweet.text)
     print(f"Classification result: {classification}")
 
     # 2. Create the enriched payload

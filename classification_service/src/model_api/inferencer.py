@@ -1,27 +1,38 @@
-# inferencer.py
+from .common.preprocessor import preprocess
+from .common.labels import ClassifLabel, ClassificationResult
+from .models.base import BaseModel
+from .models.distil_bert.model import DistilBert
+from httpx import HTTPStatusError
 
-from .loader import ModelLoader
-from .preprocessor import preprocess
-from .labels import ClassifLabel
+# Define the Used Classifier -- inside the models/ folder
+classifier: BaseModel = DistilBert()
+# Load the model
+classifier.load()
 
-import os
-
-MODEL_PATH = os.getenv("MODEL_PATH", "model/")
-
-loader = ModelLoader(model_path=MODEL_PATH)  # singleton
-classifier_pipeline = loader.get_pipeline()
-
-def predict(text: str):
+def predict(text: str) -> ClassificationResult:
+    if not classifier.is_loaded:
+        raise ValueError("Model is not loaded. Call load() before predict().")
+     
+    # Preprocess the input text. Note: Does not include the tokenization step.
+    print(f"[Inferencer] Preprocessing text: {text}")
     cleaned = preprocess(text)
-    result = classifier_pipeline(cleaned)
-    # result: [{"label": "...", "score": ...}, ...]
-    # Or multiple for return_all_scores
+    
+    print(f"[Inferencer] Cleaned text: {cleaned}")
+    # Make predictions using the classifier
+    try:
+        result = classifier.predict(cleaned)
+    except Exception as e:
+        print(f"[Inferencer] Error during prediction: {e}")
+        raise HTTPStatusError("Prediction failed", request=None, response=None)
+
+
+    print(f"[Inferencer] Prediction result: {result}")
+
     if isinstance(result, list):
-        # If return_all_scores, pick the label with max score
         best = max(result[0], key=lambda x: x['score'])
-        label = id2label.get(best["label"], best["label"])
+        label = best["label"]
         confidence = float(best["score"])
         return {"label": label, "confidence": confidence}
     else:
-        # fallback, single result
+        print(f"[Inferencer] Unexpected result type: {type(result)} |  Result: {result}")
         return result
