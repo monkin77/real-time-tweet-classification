@@ -13,6 +13,7 @@ from pub_sub.publisher.create_publisher import create_publisher
 from pub_sub.subscriber.subscriber import Subscriber
 from pub_sub.subscriber.create_subscriber import create_subscriber
 from config import Config
+from enum import Enum
 
 # --- Configuration ---
 config = Config()
@@ -36,8 +37,11 @@ MODEL_API_ENDPOINT = os.getenv("MODEL_API_ENDPOINT", "http://localhost:8001/pred
 
 class RawTweetData(BaseModel):
     """Represents the 'data' field of an incoming raw tweet message."""
-    id: str
-    text: str
+    id: str = Field(..., alias="id", description="Unique identifier for the tweet")
+    text: str = Field(..., alias="text", description="Text content of the tweet")
+    created_at: str = Field(..., alias="created_at", description="Timestamp when the tweet was created")
+    author_id: str = Field(..., alias="author_id", description="ID of the user who authored the tweet")
+    username: str = Field(..., alias="username", description="Username of the author")
 
 
 class RawTweet(BaseModel):
@@ -45,9 +49,15 @@ class RawTweet(BaseModel):
     data: RawTweetData
 
 
+class ClassifLabel(str, Enum):
+    """Enum for classification labels."""
+    DISASTER = "disaster"
+    NON_DISASTER = "non-disaster"
+    CLASSIFICATION_ERROR = "classification_error"
+
 class ClassificationResult(BaseModel):
     """Represents the response from the ML model API."""
-    label: str  # TODO: Define the possible labels with an Enum
+    label: ClassifLabel = Field(..., description="Classification label", )  
     confidence: float
 
 
@@ -135,15 +145,21 @@ async def classify_tweet(text: str) -> ClassificationResult:
     Sends tweet text to the external ML model API for classification.
     """
     try:
-        response = await http_client.post(config.MODEL_API_ENDPOINT, json={"text": text}, timeout=10.0)
+        # MOCK Response
+        return ClassificationResult(
+            label=random.choice([ClassifLabel.DISASTER, ClassifLabel.NON_DISASTER]),
+            confidence=random.uniform(0.5, 1.0)
+        )
+
+        """ response = await http_client.post(config.MODEL_API_ENDPOINT, json={"text": text}, timeout=10.0)
         response.raise_for_status()  # Raise an exception for bad status codes (4xx or 5xx)
         data = response.json()
-        return ClassificationResult(**data)
+        return ClassificationResult(**data) """
     except httpx.RequestError as e:
         print(f"Error calling model API: {e}")
         # In a real system, you might want to return a default/error state
         # or have a retry mechanism.
-        return ClassificationResult(label="classification_error", confidence=0.0)
+        return ClassificationResult(label=ClassifLabel.CLASSIFICATION_ERROR, confidence=0.0)
 
 
 async def publish_message(payload: dict):
@@ -155,21 +171,29 @@ async def publish_message(payload: dict):
 
     # Send the message to the appropriate publisher based on configuration
     print(f"TODO: Publish message to {config.PUB_SUB_TYPE} channel/topic")
+
+    await producer.publish(config.PUBLISHER_TOPIC, message)
     """
     if PUBLISHER_TYPE == "kafka" and kafka_producer:
         await kafka_producer.send_and_wait(KAFKA_PUB_TOPIC, message)
     elif PUBLISHER_TYPE == "redis" and redis_client:
         await redis_client.publish(REDIS_PUB_CHANNEL, message)
-        """
+    """
 
 
 async def process_message(message_data: bytes):
     """
     The main processing pipeline for a single message.
     """
+    print(f"Processing message: {message_data[:200]}...")  # Print first 200 chars for brevity
+
     try:
-        # 1. Parse and validate the incoming message
-        raw_tweet = RawTweet.parse_raw(message_data)
+        # 1. Parse and validate the incoming message - Deserialize the JSON data
+        data_obj = json.loads(message_data.decode("utf-8"))
+        raw_tweet = RawTweet.model_validate(
+            data_obj,
+            strict=True
+        )
 
         # 2. Classify the tweet text by calling the model API
         classification = await classify_tweet(raw_tweet.data.text)
@@ -183,7 +207,9 @@ async def process_message(message_data: bytes):
         )
 
         # 4. Publish the classified tweet
-        await publish_message(classified_tweet.dict())
+        # Convert the classified tweet to a dictionary and publish it
+        classif_tweet_dict = classified_tweet.model_dump()
+        await publish_message(classif_tweet_dict)
 
         print(
             f"Successfully processed and published tweet ID: {classified_tweet.id}")
@@ -199,14 +225,14 @@ async def process_message(message_data: bytes):
 
 async def run_consumer():
     """Runs the appropriate consumer based on the environment configuration."""
-    await subscriber.consume()
-
-    """ if config.PUB_SUB_TYPE == "kafka":
-        await consume_from_kafka()
-    elif config.PUB_SUB_TYPE == "redis":
-        await consume_from_redis()
-    else:
-        print(f"Error: Invalid CONSUMER_TYPE '{config.PUB_SUB_TYPE}'. Exiting.") """
+    try:
+        async for message in subscriber.consume():
+            # Process each messages as it arrives from the subscriber via the async Generator.
+            await process_message(message)
+    except Exception as e:
+        print(f"Error in consumer loop: {e}")
+    finally:
+        await subscriber.close()
 
 
 async def consume_from_kafka():
@@ -224,26 +250,6 @@ async def consume_from_kafka():
             await process_message(msg.value)
     finally:
         await consumer.stop() """
-    pass
-
-
-async def consume_from_redis():
-    """Continuously consumes messages from a Redis Pub/Sub channel."""
-    # Note: We create a new client here because the one for publishing
-    # cannot be used for blocking pub/sub operations simultaneously.
-
-    """ 
-    sub_client = redis.from_url(REDIS_ADDR)
-    pubsub = sub_client.pubsub()
-    await pubsub.subscribe(REDIS_SUB_CHANNEL)
-    print(f"Redis consumer subscribed to channel '{REDIS_SUB_CHANNEL}'. Waiting for messages...")
-    try:
-        async for message in pubsub.listen():
-            if message["type"] == "message":
-                await process_message(message["data"])
-    finally:
-        await sub_client.close() 
-    """
     pass
 
 

@@ -33,7 +33,9 @@ class RedisSub(Subscriber):
         try:
             async for message in self.pubsub.listen():
                 if message["type"] == "message":
-                    await self.process_message(message["data"])
+                    # await self.process_message(message["data"])
+                    # Yield the message data for processing
+                    yield message["data"]
         except Exception as e:
             print(f"Error during Redis consumption: {e}")
         finally:
@@ -44,7 +46,9 @@ class RedisSub(Subscriber):
         Processes a single message.
         """
         print(f"[Inference Service] Received message: {message_data[:200]}...")
+
         # Implement your message processing logic here
+
 
     async def close(self):
         """

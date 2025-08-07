@@ -1,2 +1,2 @@
 # Bash Script to run the ingestion service
-go run src/mock_x_api/*.go
+cd src/mock_x_api && go run *.go

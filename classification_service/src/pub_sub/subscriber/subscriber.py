@@ -28,6 +28,7 @@ class Subscriber():
     async def consume(self):
         """
         Consume messages from the specified topic.
+        This is an async generator that yields messages as they arrive.
         This method should be overridden by subclasses to implement specific consuming logic.
         """
         raise NotImplementedError("Subclasses must implement this method.")
@@ -37,6 +38,7 @@ class Subscriber():
         Process a single message.
         This method should be overridden by subclasses to implement specific message processing logic.
         '''
+        # TODO: Not required??
         raise NotImplementedError("Subclasses must implement this method.")
 
     async def close(self):
