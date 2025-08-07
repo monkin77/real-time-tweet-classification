@@ -1,59 +1,24 @@
 import asyncio
 import json
-import os
 import random
 import httpx
 # import redis.asyncio as redis
 # from aiokafka import AIOKafkaConsumer, AIOKafkaProducer
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, Field
 from typing import List
 from pub_sub.publisher.publisher import Publisher
 from pub_sub.publisher.create_publisher import create_publisher
 from pub_sub.subscriber.subscriber import Subscriber
 from pub_sub.subscriber.create_subscriber import create_subscriber
 from config import Config
-from enum import Enum
+from models import RawTweetData, ClassifiedTweet, ClassificationResult, ClassifLabel, RawTweet, PredictTweet
 
-# --- Configuration ---
+
+# -----------------------------------------------------
+# ---------------------- Configuration ----------------
+# -----------------------------------------------------
 config = Config()
-
 print(f"Configuration loaded: {config.__dict__}")
-
-# --- Pydantic Models for Data Validation ---
-class RawTweetData(BaseModel):
-    """Represents the 'data' field of an incoming raw tweet message."""
-    id: str = Field(..., alias="id", description="Unique identifier for the tweet")
-    text: str = Field(..., alias="text", description="Text content of the tweet")
-    created_at: str = Field(..., alias="created_at", description="Timestamp when the tweet was created")
-    author_id: str = Field(..., alias="author_id", description="ID of the user who authored the tweet")
-    username: str = Field(..., alias="username", description="Username of the author")
-
-
-class RawTweet(BaseModel):
-    """Represents the full structure of an incoming raw tweet message."""
-    data: RawTweetData
-
-
-class ClassifLabel(str, Enum):
-    """Enum for classification labels."""
-    DISASTER = "disaster"
-    NON_DISASTER = "non-disaster"
-    CLASSIFICATION_ERROR = "classification_error"
-
-class ClassificationResult(BaseModel):
-    """Represents the response from the ML model API."""
-    label: ClassifLabel = Field(..., description="Classification label", )  
-    confidence: float
-
-
-class ClassifiedTweet(BaseModel):
-    """Represents the final, enriched data to be published."""
-    id: str
-    text: str
-    label: str
-    confidence: float
-
 
 # -----------------------------------------------------
 # --- Lifespan Server Events (Startup and Shutdown) ---
@@ -111,15 +76,13 @@ async def shutdown_handler():
 # -------------------------------------
 # --- FastAPI Server Initialization ---
 # -------------------------------------
+# TODO: Define the URL for the server?
 app = FastAPI(
     title="Inference Service",
     description="Consumes tweets, classifies them, and publishes the results.",
     on_startup=[startup_handler],
     on_shutdown=[shutdown_handler]
 )
-
-# Global clients that will be initialized on startup
-http_client: httpx.AsyncClient = None
 
 
 # -------------------------------------
@@ -128,18 +91,26 @@ http_client: httpx.AsyncClient = None
 async def classify_tweet(text: str) -> ClassificationResult:
     """
     Sends tweet text to the external ML model API for classification.
-    """
-    try:
-        # MOCK Response
-        return ClassificationResult(
-            label=random.choice([ClassifLabel.DISASTER, ClassifLabel.NON_DISASTER]),
-            confidence=random.uniform(0.5, 1.0)
-        )
 
-        """ response = await http_client.post(config.MODEL_API_ENDPOINT, json={"text": text}, timeout=10.0)
+    :param text: The tweet text to be classified.
+
+    :return: ClassificationResult containing the label and confidence score.
+    """
+    USE_MOCK = False
+
+    try:
+        if USE_MOCK:
+            # MOCK Response
+            return ClassificationResult(
+                label=random.choice([ClassifLabel.DISASTER, ClassifLabel.NON_DISASTER]),
+                confidence=random.uniform(0.5, 1.0)
+            )
+    
+        # Call the model API to classify the tweet text
+        response = await http_client.post(config.MODEL_API_ENDPOINT, json={"text": text}, timeout=10.0)
         response.raise_for_status()  # Raise an exception for bad status codes (4xx or 5xx)
         data = response.json()
-        return ClassificationResult(**data) """
+        return ClassificationResult(**data)
     except httpx.RequestError as e:
         print(f"Error calling model API: {e}")
         # In a real system, you might want to return a default/error state
@@ -201,8 +172,6 @@ async def process_message(message_data: bytes):
 # ---------------------------------------------------
 # ---------- Background Consumer Task ---------------
 # ---------------------------------------------------
-
-
 async def run_consumer():
     """Runs the appropriate consumer based on the environment configuration."""
     try:
@@ -232,10 +201,35 @@ async def consume_from_kafka():
         await consumer.stop() """
     pass
 
-
-# --- API Endpoints ---
-
+# ---------------------------
+# ------ API Endpoints ------
+#----------------------------
 @app.get("/")
 async def root():
     """A simple health check endpoint."""
     return {"status": "Inference Service is running"}
+
+@app.post("/predict", response_model=ClassifiedTweet)
+async def predict(tweet: PredictTweet) -> ClassifiedTweet:
+    '''
+    Endpoint to classify a tweet as Disaster or Non-Disaster.
+    :param tweet: The tweet text to classify.
+
+    :return: The classified tweet with label and confidence.
+    '''
+    print(f"Received tweet for classification: {tweet.text[:100]}...")
+
+    # 1. Classify the tweet text by calling the model API
+    classification = await classify_tweet(tweet.text)
+    print(f"Classification result: {classification}")
+
+    # 2. Create the enriched payload
+    classified_tweet = ClassifiedTweet(
+        id=tweet.id,
+        text=tweet.text,
+        label=classification.label,
+        confidence=classification.confidence,
+    )
+
+    # Send the classified tweet to the Client
+    return classified_tweet
