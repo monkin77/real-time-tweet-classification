@@ -1,8 +1,8 @@
 from .publisher import Publisher
 from .kafka_pub import KafkaPub
-# from redis_pub import RedisPub
+from .redis_pub import RedisPub
 
-def create_publisher(publisher_type: str, bootstrap_servers: str | list[str]) -> Publisher:
+def create_publisher(publisher_type: str, base_url: str, port: int) -> Publisher:
     '''
     Factory Design Pattern for creating a Publisher instance.
 
@@ -12,12 +12,12 @@ def create_publisher(publisher_type: str, bootstrap_servers: str | list[str]) ->
 
     :return: An instance of the Publisher subclass corresponding to the publisher type.
     '''
-    print(f"Initializing publisher of type: {publisher_type} with servers: {bootstrap_servers}")
+    print(f"Initializing publisher of type: {publisher_type} with servers: {base_url}:{port}")
 
     if publisher_type == "kafka":
-        return KafkaPub(bootstrap_servers=bootstrap_servers)
-    elif publisher_type == "redis":
-        # return RedisPub(bootstrap_servers=bootstrap_servers)
+        # return KafkaPub(bootstrap_servers=bootstrap_servers)
         pass
+    elif publisher_type == "redis":
+        return RedisPub(base_url=base_url, port=port)
     else:
         raise ValueError(f"Unsupported publisher type: {publisher_type}")

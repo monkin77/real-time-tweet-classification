@@ -20,21 +20,7 @@ config = Config()
 
 print(f"Configuration loaded: {config.__dict__}")
 
-# Load configuration from environment variables
-""" CONSUMER_TYPE = os.getenv("CONSUMER_TYPE", "redis")
-PUBLISHER_TYPE = os.getenv("PUBLISHER_TYPE", "redis")
-REDIS_ADDR = os.getenv("REDIS_ADDR", "redis://localhost:6379")
-REDIS_SUB_CHANNEL = os.getenv("REDIS_SUB_CHANNEL", "raw_tweets")
-REDIS_PUB_CHANNEL = os.getenv("REDIS_PUB_CHANNEL", "classified_tweets")
-KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
-KAFKA_CONSUMER_GROUP_ID = os.getenv("KAFKA_CONSUMER_GROUP_ID", "inference-group")
-KAFKA_SUB_TOPIC = os.getenv("KAFKA_SUB_TOPIC", "raw_tweets")
-KAFKA_PUB_TOPIC = os.getenv("KAFKA_PUB_TOPIC", "classified_tweets")
-MODEL_API_ENDPOINT = os.getenv("MODEL_API_ENDPOINT", "http://localhost:8001/predict") """
-
-
 # --- Pydantic Models for Data Validation ---
-
 class RawTweetData(BaseModel):
     """Represents the 'data' field of an incoming raw tweet message."""
     id: str = Field(..., alias="id", description="Unique identifier for the tweet")
@@ -92,7 +78,8 @@ async def startup_handler():
     # Initialize the appropriate publisher client based on config
     producer = create_publisher(
         publisher_type=config.PUB_SUB_TYPE,
-        bootstrap_servers=config.STREAM_ADDR
+        base_url=config.STREAM_BASE_URL,
+        port=config.STREAM_PORT
     )
 
     # Initialize the appropriate subscriber client based on config
@@ -133,8 +120,6 @@ app = FastAPI(
 
 # Global clients that will be initialized on startup
 http_client: httpx.AsyncClient = None
-# kafka_producer: AIOKafkaProducer = None
-# redis_client: redis.Redis = None
 
 
 # -------------------------------------
@@ -170,15 +155,11 @@ async def publish_message(payload: dict):
     message = json.dumps(payload).encode("utf-8")
 
     # Send the message to the appropriate publisher based on configuration
-    print(f"TODO: Publish message to {config.PUB_SUB_TYPE} channel/topic")
+    num_subscribers = await producer.publish(config.PUBLISHER_TOPIC, message)
 
-    await producer.publish(config.PUBLISHER_TOPIC, message)
-    """
-    if PUBLISHER_TYPE == "kafka" and kafka_producer:
-        await kafka_producer.send_and_wait(KAFKA_PUB_TOPIC, message)
-    elif PUBLISHER_TYPE == "redis" and redis_client:
-        await redis_client.publish(REDIS_PUB_CHANNEL, message)
-    """
+    # Could try to resend the message if no subscribers are available
+    if num_subscribers == 0:
+        print(f"No subscribers for topic '{config.PUBLISHER_TOPIC}'. Message not received.")
 
 
 async def process_message(message_data: bytes):
@@ -213,7 +194,6 @@ async def process_message(message_data: bytes):
 
         print(
             f"Successfully processed and published tweet ID: {classified_tweet.id}")
-
     except Exception as e:
         print(
             f"Failed to process message. Error: {e}. Message: {message_data[:200]}...")
