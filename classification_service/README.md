@@ -108,11 +108,19 @@ cp .env.example .env
 The default settings are configured to use Redis on `localhost:6379`, which matches the Docker command above.
 
 ### 4. Run the Service
-You can run the FastAPI application using:
+To run the FastAPI application, you should navigate to the `src` directory and use either `uvicorn` or `fastapi` command to start the server.
+
+For ease of use, you can run the script directly from the root directory:
 
 ```bash
-fastapi dev src/main.py
+./server.sh
 ```
+
+This script will:
+1. Activate the virtual environment.
+2. Move to the `src` directory.
+3. Run the FastAPI server using `uvicorn`.
+
 The service will now be running and connected to your local Redis instance. It will:
 - Subscribe to the `raw_tweets` channel.
 - Process messages as they arrive.

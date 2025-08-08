@@ -1,13 +1,16 @@
 from abc import ABC, abstractmethod
 import keras
 import keras_nlp
+from logging import Logger
 
 class BaseModel(ABC):
-    def __init__(self):
+    def __init__(self, logger: Logger):
         """Initialize the base model."""
         self.preprocessor: keras_nlp.models.Preprocessor = None  # Will be initialized in load method
         self.classifier: keras.Model = None  # Will be initialized in load method
         self.is_loaded = False
+
+        self.logger = logger
 
     @abstractmethod
     def load(self):

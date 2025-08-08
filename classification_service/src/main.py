@@ -14,14 +14,15 @@ from pub_sub.subscriber.create_subscriber import create_subscriber
 from config import Config
 from models import RawTweetData, ClassifiedTweet, ClassificationResult, RawTweet, PredictTweet
 from model_api.common.labels import ClassifLabel
-from model_api.inferencer import predict as classify_tweet_text
+from model_api.inferencer import Inferencer
+from logger import logger
 
 
 # -----------------------------------------------------
 # ---------------------- Configuration ----------------
 # -----------------------------------------------------
 config = Config()
-print(f"Configuration loaded: {config.__dict__}")
+logger.info(f"Configuration loaded: {config.__dict__}")
 
 # -----------------------------------------------------
 # --- Lifespan Server Events (Startup and Shutdown) ---
@@ -30,13 +31,17 @@ http_client: httpx.AsyncClient
 producer: Publisher
 subscriber: Subscriber
 
+# -----------------------------------------------------
+# --- Define the Inferencer Instance ---
+# -----------------------------------------------------
+inferencer: Inferencer = Inferencer(logger=logger)
 
 async def startup_handler():
     '''
     Lifespan context manager to handle startup and shutdown events.
     Async keyword is used to allow asynchronous operations during startup.
     '''
-    print("--- Starting Inference Service ---")
+    logger.info("--- Starting Inference Service ---")
 
     global http_client, producer, subscriber
 
@@ -59,21 +64,21 @@ async def startup_handler():
     )
 
     # Start the message consumer as a background task
-    print(f"Starting {config.PUB_SUB_TYPE} consumer as a background task...")
+    logger.info(f"Starting {config.PUB_SUB_TYPE} consumer as a background task...")
     # This will run indefinitely in the background
     asyncio.create_task(run_consumer())
 
 
 async def shutdown_handler():
     """Cleans up resources on application shutdown."""
-    print("--- Shutting Down Inference Service... ---")
+    logger.info("--- Shutting Down Inference Service... ---")
 
     if http_client:
         await http_client.aclose()
     if producer:
         await producer.close()
 
-    print("--- Shutdown Complete ---")
+    logger.info("--- Shutdown Complete ---")
 
 
 # -------------------------------------
@@ -119,7 +124,7 @@ async def classify_tweet(text: str, id: str) -> ClassificationResult:
         data = response.json()
         return ClassificationResult(**data)
     except httpx.RequestError as e:
-        print(f"Error calling model API: {e}")
+        logger.error(f"Error calling model API: {e}")
         # In a real system, you might want to return a default/error state
         # or have a retry mechanism.
         return ClassificationResult(label=ClassifLabel.CLASSIFICATION_ERROR, confidence=0.0)
@@ -137,14 +142,14 @@ async def publish_message(payload: dict):
 
     # Could try to resend the message if no subscribers are available
     if num_subscribers == 0:
-        print(f"No subscribers for topic '{config.PUBLISHER_TOPIC}'. Message not received.")
+        logger.warning(f"No subscribers for topic '{config.PUBLISHER_TOPIC}'. Message not received.")
 
 
 async def process_message(message_data: bytes):
     """
     The main processing pipeline for a single message.
     """
-    print(f"Processing message: {message_data[:200]}...")  # Print first 200 chars for brevity
+    logger.debug(f"Processing message: {message_data[:200]}...")  # Print first 200 chars for brevity
 
     try:
         # 1. Parse and validate the incoming message - Deserialize the JSON data
@@ -170,11 +175,9 @@ async def process_message(message_data: bytes):
         classif_tweet_dict = classified_tweet.model_dump()
         await publish_message(classif_tweet_dict)
 
-        print(
-            f"Successfully processed and published tweet ID: {classified_tweet.id}")
+        logger.info(f"Successfully processed and published tweet ID: {classified_tweet.id}")
     except Exception as e:
-        print(
-            f"Failed to process message. Error: {e}. Message: {message_data[:200]}...")
+        logger.error(f"Failed to process message. Error: {e}. Message: {message_data[:200]}...")
 
 # ---------------------------------------------------
 # ---------- Background Consumer Task ---------------
@@ -186,7 +189,7 @@ async def run_consumer():
             # Process each messages as it arrives from the subscriber via the async Generator.
             await process_message(message)
     except Exception as e:
-        print(f"Error in consumer loop: {e}")
+        logger.error(f"Error in consumer loop: {e}")
     finally:
         await subscriber.close()
 
@@ -200,7 +203,7 @@ async def consume_from_kafka():
         auto_offset_reset='earliest'
     )
     await consumer.start()
-    print(f"Kafka consumer started for topic '{KAFK_SUB_TOPIC}'. Waiting for messages...")
+    logger.info(f"Kafka consumer started for topic '{KAFK_SUB_TOPIC}'. Waiting for messages...")
     try:
         async for msg in consumer:
             await process_message(msg.value)
@@ -224,11 +227,11 @@ async def predict(tweet: PredictTweet) -> ClassifiedTweet:
 
     :return: The classified tweet with label and confidence.
     '''
-    print(f"Received tweet for classification: {tweet.text[:100]}...")
+    logger.debug(f"Received tweet for classification: {tweet.text[:100]}...")
 
     # 1. Classify the tweet text by calling the model API
-    classification = classify_tweet_text(tweet.text)
-    print(f"Classification result: {classification}")
+    classification = inferencer.predict(tweet.text)
+    logger.info(f"Classification result: {classification}")
 
     # 2. Create the enriched payload
     classified_tweet = ClassifiedTweet(

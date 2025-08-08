@@ -1,4 +1,7 @@
 #!/bin/bash
+# Activate the virtual environment
+source .venv/bin/activate
+
 # Run with fastapi
 # fastapi dev src/main.py
 
