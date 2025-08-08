@@ -33,3 +33,4 @@ class ClassifiedTweet(BaseModel):
 class PredictTweet(BaseModel):
     """Represents the input for the tweet prediction endpoint."""
     text: str
+    id: str = Field(..., description="Unique identifier for the tweet")

@@ -91,11 +91,12 @@ app = FastAPI(
 # -------------------------------------
 # ---------- Core Logic ---------------
 # -------------------------------------
-async def classify_tweet(text: str) -> ClassificationResult:
+async def classify_tweet(text: str, id: str) -> ClassificationResult:
     """
     Sends tweet text to the external ML model API for classification.
 
     :param text: The tweet text to be classified.
+    :param id: The unique identifier for the tweet.
 
     :return: ClassificationResult containing the label and confidence score.
     """
@@ -108,9 +109,12 @@ async def classify_tweet(text: str) -> ClassificationResult:
                 label=random.choice([ClassifLabel.DISASTER, ClassifLabel.NON_DISASTER]),
                 confidence=random.uniform(0.5, 1.0)
             )
-    
+        
+        # Build the request payload
+        payload: PredictTweet = PredictTweet(text=text, id=id)
+        
         # Call the model API to classify the tweet text
-        response = await http_client.post(config.MODEL_API_ENDPOINT, json={"text": text}, timeout=10.0)
+        response = await http_client.post(config.MODEL_API_ENDPOINT, json=payload.model_dump(), timeout=10.0)
         response.raise_for_status()  # Raise an exception for bad status codes (4xx or 5xx)
         data = response.json()
         return ClassificationResult(**data)
@@ -151,7 +155,7 @@ async def process_message(message_data: bytes):
         )
 
         # 2. Classify the tweet text by calling the model API
-        classification = await classify_tweet(raw_tweet.data.text)
+        classification = await classify_tweet(raw_tweet.data.text, raw_tweet.data.id)
 
         # 3. Create the enriched payload
         classified_tweet = ClassifiedTweet(

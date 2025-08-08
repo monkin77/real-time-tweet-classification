@@ -1,7 +1,7 @@
-from common.preprocessor import preprocess
-from common.labels import ClassifLabel, ClassificationResult, net_idx_to_label
-from models.base import BaseModel
-from models.distil_bert.model import DistilBert
+from model_api.common.preprocessor import preprocess
+from model_api.common.labels import ClassifLabel, ClassificationResult, net_idx_to_label
+from model_api.models.base import BaseModel
+from model_api.models.distil_bert.model import DistilBert
 from httpx import HTTPStatusError
 from numpy import argmax
 

@@ -14,7 +14,12 @@ class DistilBert(BaseModel):
             name="preprocessor_4_tweets"
         )
 
-        trained_model_file = "./models/distil_bert/trained_model.keras"# "./model_api/models/distil_bert/trained_model.keras"    # TODO: Check if this is the correct path
+        trained_model_file = "./model_api/models/distil_bert/trained_model.keras"  # "./models/distil_bert/trained_model.keras"    # TODO: Add this to .env file
+        
+        # Print the WD First
+        # import os
+        # print(f"[DistilBert] Current working directory: {os.getcwd()}\n\n\n")
+
         self.classifier: keras.Model = keras.models.load_model(trained_model_file)
 
         # Print summary of the loaded mode
