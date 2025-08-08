@@ -19,7 +19,6 @@ class Config:
     STREAM_PORT: Optional[int] = None
     STREAM_ADDR: Optional[str] = None  # This will be constructed as "STREAM_BASE_URL:STREAM_PORT"
 
-
     # Redis configuration
     REDIS_PASSWORD: Optional[str]
 
@@ -30,6 +29,9 @@ class Config:
     SV_BASE_URL: str
     SV_PORT: int
     MODEL_API_ENDPOINT: str
+
+    # Logging configuration
+    LOG_LEVEL: str
 
     def __init__(self):
         load_dotenv(override=True)
@@ -69,6 +71,9 @@ class Config:
 
         self.REDIS_PASSWORD = os.getenv("REDIS_PASSWORD", "")
 
+        # Logging configuration
+        self.LOG_LEVEL = self._require("LOG_LEVEL", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"])
+        
     def _require(self, key, choices=None):
         val = os.getenv(key)
         if not val:

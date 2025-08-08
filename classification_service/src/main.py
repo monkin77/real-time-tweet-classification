@@ -15,14 +15,18 @@ from config import Config
 from models import RawTweetData, ClassifiedTweet, ClassificationResult, RawTweet, PredictTweet
 from model_api.common.labels import ClassifLabel
 from model_api.inferencer import Inferencer
-from logger import logger
-
-
+from logger import logger, set_log_level
 # -----------------------------------------------------
 # ---------------------- Configuration ----------------
 # -----------------------------------------------------
 config = Config()
 logger.info(f"Configuration loaded: {config.__dict__}")
+
+# -----------------------------------------------------
+# -------------- Logger Initialization ----------------
+# -----------------------------------------------------
+# Set the logger level based on the configuration. Defaults to INFO if not set.
+set_log_level(config.LOG_LEVEL)
 
 # -----------------------------------------------------
 # --- Lifespan Server Events (Startup and Shutdown) ---

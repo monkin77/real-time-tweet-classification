@@ -39,16 +39,16 @@ class DistilBert(BaseModel):
 
         # Add batch dimension for the input text
         net_input = [text]  # Wrap the text in a list to create a batch of size 1
-        self.logger.debug("[DistilBert] Inputs for prediction:", net_input)
+        self.logger.debug(f"[DistilBert] Inputs for prediction: {net_input}", exc_info=False)
 
         # Get the logits from the classifier
         predictions = self.classifier.predict(net_input)
         # This method only classifies a single text at a time, so we can assume batch_size=1.
         predictions = predictions[0]
-        self.logger.debug("[DistilBert] Raw predictions (logits):", predictions)
+        self.logger.debug("[DistilBert] Raw predictions (logits):", str(predictions.tolist()))
 
         # Compute the Softmax probabilities
         softmax_pred = keras.activations.softmax(predictions, axis=-1)
-        self.logger.debug("[DistilBert] Softmax predictions:", softmax_pred)
+        # self.logger.debug("[DistilBert] Softmax predictions:", str(softmax_pred.numpy().tolist()))
 
         return softmax_pred
