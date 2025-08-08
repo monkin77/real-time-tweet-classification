@@ -2,5 +2,16 @@
     // This file contains settings for the VS Code Python extension.
 
 
-    "python-envs.pythonProjects": []    // Define Python projects to be recognized by the extension.
+    "python-envs.pythonProjects": [
+        {
+            "path": "classification_service/",
+            "envManager": "ms-python.python:system",
+            "packageManager": "ms-python.python:pip"
+        },
+        {
+            "path": "",
+            "envManager": "ms-python.python:venv",
+            "packageManager": "ms-python.python:pip"
+        }
+    ]    // Define Python projects to be recognized by the extension.
 }

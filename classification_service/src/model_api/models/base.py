@@ -14,12 +14,12 @@ class BaseModel(ABC):
         pass
 
     @abstractmethod
-    def predict(self, text: str):
+    def predict(self, text: str) -> list[float]:
         '''
         Preprocess the input text and make predictions using the classifier.
         :param text: The text to classify.
 
-        :return: The prediction results. Shape: (batch_size, num_classes=2)
+        :return: The prediction results. Shape: (num_classes=2)
         Returns a list of probabilities of belonging to each class.
         '''
         pass

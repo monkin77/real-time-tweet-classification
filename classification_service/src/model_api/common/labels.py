@@ -8,7 +8,14 @@ class ClassifLabel(str, Enum):
     NON_DISASTER = "non-disaster"
     CLASSIFICATION_ERROR = "classification_error"
 
+net_idx_to_label: dict[int, ClassifLabel] = {
+    0: ClassifLabel.NON_DISASTER,
+    1: ClassifLabel.DISASTER,
+}
+
+
 class ClassificationResult(BaseModel):
     """Represents the response from the ML model API."""
     label: ClassifLabel = Field(..., description="Classification label", )  
     confidence: float
+
