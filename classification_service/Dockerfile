@@ -46,15 +46,20 @@ COPY --from=builder /app/src ./src
 COPY --from=builder /app/.env ./
 
 # Expose the port the service runs on
-EXPOSE 8000
+EXPOSE 8081
 
 
-# Command to run the application
+# -- Command to run the application ---
+# Need to run the command from the src directory
+WORKDIR /app/src
+
+# Start by moving to the src directory and then run the application
 # --- Debugging ---
 # CMD echo "files in WD: $(ls -a)\n" \
 #    echo "files in src: $(ls src)\n" && \
 #    echo "files in .venv: $(ls .venv/)"
 
-CMD ["fastapi", "run", "src/main.py", "--port", "8000"]
+# CMD ["fastapi", "run", "main.py", "--port", "8081"]
 # Alternatively, you can use uvicorn to run the application
-# CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8081"]
