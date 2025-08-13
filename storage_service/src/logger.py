@@ -1,7 +1,6 @@
 import logging
 import sys
 
-
 def get_logger(name: str, level: int = logging.INFO) -> logging.Logger:
     """
     Creates and configures a logger.
@@ -15,7 +14,7 @@ def get_logger(name: str, level: int = logging.INFO) -> logging.Logger:
 
     # Create a formatter and set it for the handler
     formatter = logging.Formatter(
-        '[Classification Service] %(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        '[Storage Service] %(asctime)s - %(name)s - %(levelname)s - %(message)s'
     )
     handler.setFormatter(formatter)
 
