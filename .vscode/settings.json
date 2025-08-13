@@ -5,7 +5,7 @@
     "python-envs.pythonProjects": [
         {
             "path": "classification_service/",
-            "envManager": "ms-python.python:system",
+            "envManager": "ms-python.python:venv",
             "packageManager": "ms-python.python:pip"
         },
         {

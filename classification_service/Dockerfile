@@ -1,7 +1,10 @@
 # Dockerfile for the Classification Service
 
 # Stage 1: Build the application with Poetry
-FROM python:3.10-slim AS builder
+# Use the official Python image as the base for building the application
+# FROM python:3.10-slim AS builder
+# Use the official TensorFlow image as the base for building the application
+FROM tensorflow/tensorflow:latest as builder
 
 # Set poetry configurations to create the virtual environment in the project's root
 ENV POETRY_VIRTUALENVS_IN_PROJECT=true
@@ -29,7 +32,10 @@ COPY src/ ./src
 COPY .env.docker .env
 
 # Stage 2: Create the final, lean image
-FROM python:3.10-slim
+# Use the official Python image as the base for the final image
+# FROM python:3.10-slim
+# Use the official TensorFlow image as the base for the final image
+FROM tensorflow/tensorflow:latest
 
 # Set the working directory
 WORKDIR /app
