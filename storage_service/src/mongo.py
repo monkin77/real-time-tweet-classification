@@ -1,6 +1,8 @@
 # storage_service/src/mongo.py - MongoDB Connection and Operations
 from pymongo import MongoClient
 from pymongo.collection import Collection
+from pydantic import BaseModel, Field
+from logging import Logger
 
 def create_mongo_client(mongo_uri: str, database_name: str, collection: str):
     """
@@ -31,44 +33,14 @@ def close_mongo_client(db_client: MongoClient):
 
 
 # Class for Classified Tweet Document
-class ClassifiedTweet:
-    '''
-    Represents a classified tweet document.
-    '''
-    def __init__(self, tweet_id: str, text: str, label: str, confidence: float):
-        self.tweet_id = tweet_id
-        self.text = text
-        self.label = label
-        self.confidence = confidence
+class ClassifiedTweet(BaseModel):
+    tweet_id: str = Field(..., alias="id", description="Unique identifier for the tweet")
+    text: str = Field(..., alias="text", description="Text content of the tweet")
+    label: str = Field(..., alias="label", description="Classification label for the tweet")
+    confidence: float = Field(..., alias="confidence", description="Confidence score for the classification")
 
-    def to_dict(self):
-        """
-        Converts the ClassifiedTweet instance to a dictionary.
-        """
-        return {
-            "tweet_id": self.tweet_id,
-            "text": self.text,
-            "label": self.label,
-            "confidence": self.confidence
-        }
-
-    @staticmethod
-    def from_dict(data: dict):
-        """
-        Creates a ClassifiedTweet instance from a dictionary.
-        """
-        # Check if required fields are present
-        if not all(key in data for key in ("id", "text", "label", "confidence")):
-            raise ValueError("Missing required fields in data dictionary.")
-
-        return ClassifiedTweet(
-            tweet_id=data.get("id"),
-            text=data.get("text"),
-            label=data.get("label"),
-            confidence=data.get("confidence")
-        )
     
-def insert_document(collection: Collection, document: ClassifiedTweet):
+def insert_document(collection: Collection, document: ClassifiedTweet, logger: Logger) -> str:
     """
     Inserts a ClassifiedTweet document into the specified collection.
     
@@ -77,5 +49,13 @@ def insert_document(collection: Collection, document: ClassifiedTweet):
     
     :return: The inserted document's ID.
     """
-    result = collection.insert_one(document.to_dict())
+    # Check if the tweet was already stored before
+    existing_tweet = collection.find_one({"tweet_id": document.tweet_id})
+    if existing_tweet:
+        logger.info(f"Tweet with ID {document.tweet_id} already exists in the collection. Skipping insertion.")
+        return existing_tweet["_id"]
+
+
+    result = collection.insert_one(document.model_dump())
+    logger.debug(f"Inserted document with ID {result.inserted_id}.")
     return result.inserted_id

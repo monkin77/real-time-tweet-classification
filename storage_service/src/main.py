@@ -48,15 +48,14 @@ async def process_message(message_data: bytes):
     try:
         # Decode the message data from bytes to string
         json_data = json.loads(message_data.decode('utf-8'))
+        logger.debug(f"Decoded message: {json_data}")
 
-        logger.info(f"Decoded message: {json_data}")
-
-        # Convert bytes to ClassifiedTweet object
-        tweet_obj = ClassifiedTweet.from_dict(json_data)
+        # Convert bytes to ClassifiedTweet object and validate
+        tweet_obj = ClassifiedTweet.model_validate(json_data, strict=True)
+        logger.debug(f"Storing ClassifiedTweet object: {tweet_obj}")
 
         # Store the message in MongoDB
-        result = insert_document(collection, tweet_obj)
-        logger.info(f"Message stored in MongoDB with ID: {result}")
+        insert_document(collection, tweet_obj, logger)
     except Exception as e:
         logger.error(f"Failed to process message. Error: {e}. Message: {message_data[:200]}...")
 

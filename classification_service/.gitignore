@@ -281,3 +281,6 @@ $RECYCLE.BIN/
 !.env.example
 
 # End of https://www.gitignore.io/api/linux,macos,python,pycharm,windows,visualstudiocode
+
+# Ignore log files
+*.log
