@@ -49,8 +49,8 @@ type StreamResponse struct {
 const csvFilePath = "dataset/kaggle_test.csv"
 
 // Define the rate lowerbound of the Tweet stream.
-const streamRateLB = 2 * time.Second     // 2 seconds between tweets
-const streamRateRandom = 2 * time.Second // Randomness in the stream rate
+const streamRateLB = 4 * time.Second     // 4 seconds between tweets
+const streamRateRandom = 5 * time.Second // Randomness in the stream rate
 
 // main is the entry point for our mock API server.
 func main() {
