@@ -58,6 +58,21 @@ services:
     networks:
       - disaster-net
 
+  storage_service:
+    build:
+      context: ./storage_service
+      dockerfile: Dockerfile
+    container_name: storage_service
+    image: storage_service:latest
+    depends_on:
+      - redis
+      - classification_service
+    ports: 
+      - "8082:8082" # Expose the storage service port to the host
+    # environment:
+    networks:
+      - disaster-net
+
 networks:
   disaster-net:
     driver: bridge

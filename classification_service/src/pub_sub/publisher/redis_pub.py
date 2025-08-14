@@ -34,4 +34,11 @@ class RedisPub(Publisher):
 
         # Return the result of the publish operation
         return num_subscribers
+    
+    async def close(self):
+        '''
+        Close the Redis connection.
+        '''
+        if self.pub_client:
+            await self.pub_client.close()
 

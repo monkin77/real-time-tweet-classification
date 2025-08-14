@@ -57,5 +57,5 @@ def insert_document(collection: Collection, document: ClassifiedTweet, logger: L
 
 
     result = collection.insert_one(document.model_dump())
-    logger.debug(f"Inserted document with ID {result.inserted_id}.")
+    logger.info(f"Inserted document with ID {result.inserted_id}.")
     return result.inserted_id
