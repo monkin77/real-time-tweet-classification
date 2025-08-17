@@ -172,6 +172,7 @@ async def process_message(message_data: bytes):
             text=raw_tweet.data.text,
             label=classification.label,
             confidence=classification.confidence,
+            created_at=raw_tweet.data.created_at
         )
 
         # 4. Publish the classified tweet
@@ -223,8 +224,8 @@ async def root():
     """A simple health check endpoint."""
     return {"status": "Inference Service is running"}
 
-@app.post("/predict", response_model=ClassifiedTweet)
-async def predict(tweet: PredictTweet) -> ClassifiedTweet:
+@app.post("/predict", response_model=ClassificationResult)
+async def predict(tweet: PredictTweet) -> ClassificationResult:
     '''
     Endpoint to classify a tweet as Disaster or Non-Disaster.
     :param tweet: The tweet text to classify.
@@ -238,9 +239,7 @@ async def predict(tweet: PredictTweet) -> ClassifiedTweet:
     logger.info(f"Classification result: {classification}")
 
     # 2. Create the enriched payload
-    classified_tweet = ClassifiedTweet(
-        id=tweet.id,
-        text=tweet.text,
+    classified_tweet = ClassificationResult(
         label=classification.label,
         confidence=classification.confidence,
     )

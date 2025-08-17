@@ -38,6 +38,7 @@ class ClassifiedTweet(BaseModel):
     text: str = Field(..., alias="text", description="Text content of the tweet")
     label: str = Field(..., alias="label", description="Classification label for the tweet")
     confidence: float = Field(..., alias="confidence", description="Confidence score for the classification")
+    created_at: str = Field(..., alias="created_at", description="Timestamp when the tweet was created")    
 
     
 def insert_document(collection: Collection, document: ClassifiedTweet, logger: Logger) -> str:

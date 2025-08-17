@@ -29,6 +29,7 @@ class ClassifiedTweet(BaseModel):
     text: str
     label: str
     confidence: float
+    created_at: str = Field(..., description="Timestamp when the tweet was created")
 
 class PredictTweet(BaseModel):
     """Represents the input for the tweet prediction endpoint."""
