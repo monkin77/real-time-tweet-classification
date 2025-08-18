@@ -3,6 +3,7 @@ from pymongo import MongoClient
 from pymongo.collection import Collection
 from pydantic import BaseModel, Field
 from logging import Logger
+from datetime import datetime
 
 def create_mongo_client(mongo_uri: str, database_name: str, collection: str):
     """
@@ -38,7 +39,7 @@ class ClassifiedTweet(BaseModel):
     text: str = Field(..., alias="text", description="Text content of the tweet")
     label: str = Field(..., alias="label", description="Classification label for the tweet")
     confidence: float = Field(..., alias="confidence", description="Confidence score for the classification")
-    created_at: str = Field(..., alias="created_at", description="Timestamp when the tweet was created")    
+    created_at: datetime = Field(..., alias="created_at", description="Timestamp when the tweet was created in datetime format")    
 
     
 def insert_document(collection: Collection, document: ClassifiedTweet, logger: Logger) -> str:

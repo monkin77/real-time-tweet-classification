@@ -5,6 +5,7 @@ from subscriber.create_subscriber import create_subscriber
 import asyncio
 from mongo import create_mongo_client, insert_document, ClassifiedTweet
 import json
+from datetime import datetime
 
 # Load the Configuration from the Environment Variables
 cfg = Config()
@@ -49,6 +50,20 @@ async def process_message(message_data: bytes):
         # Decode the message data from bytes to string
         json_data = json.loads(message_data.decode('utf-8'))
         logger.debug(f"Decoded message: {json_data}")
+
+        # --- Validate and create a ClassifiedTweet object from the JSON data ---
+        # Convert the ISO 8601 date string to a datetime object
+        native_date: datetime
+        try:
+            # Ensure the date string is in the correct format - Millisecond Precision and UTC
+            valid_date = json_data['created_at'][:26] + 'Z'  # Ensure it ends with 'Z' for UTC
+            native_date = datetime.fromisoformat(valid_date.replace('Z', '+00:00'))
+
+            # Update the json_data with the datetime object
+            json_data['created_at'] = native_date
+        except Exception as e:
+            logger.error(f"Failed to parse date. Error: {e}. Message: {message_data[:200]}...")
+            return
 
         # Convert bytes to ClassifiedTweet object and validate
         tweet_obj = ClassifiedTweet.model_validate(json_data, strict=True)
