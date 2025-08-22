@@ -15,8 +15,7 @@ def create_publisher(publisher_type: str, base_url: str, port: int) -> Publisher
     print(f"Initializing publisher of type: {publisher_type} with servers: {base_url}:{port}")
 
     if publisher_type == "kafka":
-        # return KafkaPub(bootstrap_servers=bootstrap_servers)
-        pass
+        return KafkaPub(base_url=base_url, port=port)
     elif publisher_type == "redis":
         return RedisPub(base_url=base_url, port=port)
     else:

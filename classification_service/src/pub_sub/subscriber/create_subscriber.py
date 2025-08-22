@@ -1,5 +1,6 @@
 from .subscriber import Subscriber
 from .redis_sub import RedisSub
+from .kafka_sub import KafkaSub
 
 def create_subscriber(subscriber_type: str, base_url: str, port: int, topic: str) -> Subscriber:
     '''
@@ -14,8 +15,7 @@ def create_subscriber(subscriber_type: str, base_url: str, port: int, topic: str
     print(f"Initializing Subscriber of type: {subscriber_type} listening on topic: {topic} at {base_url}:{port}")
 
     if subscriber_type == "kafka":
-        pass
-        # return KafkaPub(bootstrap_servers=bootstrap_servers)
+        return KafkaSub(base_url=base_url, port=port, topic=topic)
     elif subscriber_type == "redis":
         return RedisSub(base_url=base_url, port=port, topic=topic)
     else:

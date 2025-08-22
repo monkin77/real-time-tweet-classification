@@ -5,17 +5,19 @@ TIMEOUT = 10  # Wait time for message to be sent (seconds)
 
 class KafkaPub(Publisher):
 
-    def __init__(self, bootstrap_servers: str | list[str]):
+    def __init__(self, base_url: str, port: int):
         '''
-        Initializes the Kafka publisher with the topic and bootstrap servers.
-        :param bootstrap_servers: The address(es) of the Kafka broker(s).
-        :param topic: The Kafka topic to publish messages to.
+        Initializes the Kafka publisher with the base_url and port (Bootstrap Servers)
+        :param base_url: The address of the Kafka broker.
+        :param port: The port of the Kafka broker.
         '''
         # Call the base class constructor
-        super().__init__(publisher_type="kafka", bootstrap_servers=bootstrap_servers)
+        super().__init__(publisher_type="kafka", base_url=base_url, port=port)
 
         # Initialize the Kafka producer
-        self.producer = KafkaProducer(bootstrap_servers=bootstrap_servers)
+        bootstrap_sv = f"{base_url}:{port}"
+
+        self.producer = KafkaProducer(bootstrap_servers=bootstrap_sv)
 
     async def publish(self, topic: str, message: bytes):
         '''
@@ -38,4 +40,11 @@ class KafkaPub(Publisher):
 
         # Return the result of the send operation
         return result
+    
+    async def close(self):
+        '''
+        Close the Kafka producer connection.
+        '''
+        if self.producer:
+            self.producer.close()
 
