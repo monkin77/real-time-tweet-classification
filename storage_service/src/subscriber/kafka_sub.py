@@ -18,11 +18,25 @@ class KafkaSub(Subscriber):
         # Create a Kafka consumer
         kafka_broker = f"{base_url}:{port}"
         kafka_config = kafka_config or {}
-        self.consumer = KafkaConsumer(
-            topic,
-            bootstrap_servers=[kafka_broker],
-            **kafka_config
-        )
+
+        tries = 0
+        while tries < 3:
+            try:
+                self.consumer = KafkaConsumer(
+                    topic,
+                    bootstrap_servers=[kafka_broker],
+                    **kafka_config
+                )
+
+                print(f"Kafka consumer initialized and connected to broker at {kafka_broker}, subscribed to topic '{topic}'.")
+                break  # Exit the loop if successful
+            except Exception as e:
+                print(f"Error initializing Kafka consumer: {e}. Retrying...")
+                
+                # Wait for 3 seconds
+                import time
+                time.sleep(3)
+                tries += 1  # Increment the tries counter
 
     async def consume(self):
         '''

@@ -1,0 +1,109 @@
+version: '3.8'
+
+services:
+  # Kafka Services
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.3.0
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - disaster-net
+
+  kafka:
+    image: confluentinc/cp-kafka:7.3.0
+    container_name: kafka
+    ports:
+      - "9092:9092" # For external connections from your local machine
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      # Use PLAINTEXT for in-container communication (kafka:29092) and PLAINTEXT_HOST for host-machine communication (localhost:9092)
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+    networks:
+      - disaster-net
+
+  kafdrop:
+    image: obsidiandynamics/kafdrop:latest
+    container_name: kafdrop
+    depends_on:
+      - kafka
+    ports:
+      - "9000:9000"
+    environment:
+      KAFKA_BROKERCONNECT: "kafka:29092"
+    networks:
+      - disaster-net
+
+
+  # Mock API service to simulate the X API stream
+  mock-api:
+    # Build configuration for the mock API service
+    build:
+      context: ./ingestion_service                   # Build context is the ingestion_service directory
+      dockerfile: Dockerfile        # Use the Dockerfile in the ingestion_service directory
+    image: disaster-tweets-ingestion:latest # Tag the image used to run the container
+    container_name: mock_api_server # Name of the container for easy identification
+    environment:
+      # This variable is read by entrypoint.sh to run the correct binary
+      - SERVICE_TO_RUN=mock_api
+    ports:
+      # Expose the mock API port to the host for easy access/testing
+      - "8080:8080"
+    networks:
+      # Connect to the custom network for inter-service communication
+      - disaster-net
+
+  ingestion_service:
+    build:
+      context: ./ingestion_service
+      dockerfile: Dockerfile
+    image: disaster-tweets-ingestion:latest   # Tag the image used to run the container
+    container_name: ingestion_service
+    depends_on:
+      - kafka
+      - mock-api
+    environment:
+      - SERVICE_TO_RUN=client   # Variable used by entrypoint.sh to run the correct binary
+      - DEV_MOCK_STREAM=true    # Specify that we are connecting to the mock X API (Dev Mode)
+    networks:
+      - disaster-net
+
+  classification_service:
+    build:
+      context: ./classification_service
+      dockerfile: Dockerfile
+    container_name: classification_service
+    image: classification_service:latest
+    depends_on:
+      - kafka
+      - ingestion_service   # Ensure the ingestion service is up before starting classification
+    ports:
+      - "8081:8081" # Expose the classification service port to the host
+    # environment:
+
+    networks:
+      - disaster-net
+
+  storage_service:
+    build:
+      context: ./storage_service
+      dockerfile: Dockerfile
+    container_name: storage_service
+    image: storage_service:latest
+    depends_on:
+      - kafka
+      - classification_service
+    ports: 
+      - "8082:8082" # Expose the storage service port to the host
+    # environment:
+    networks:
+      - disaster-net
+
+networks:
+  disaster-net:
+    driver: bridge

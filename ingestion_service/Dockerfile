@@ -3,8 +3,8 @@
 
 # Stage 1: Builder
 # Use the official Go image as a parent image.
-# Using alpine for a smaller image size, matching your Go version requirement.
-FROM golang:1.24.5-alpine AS builder
+# Using bookworm as the base Debian image to ensure it contains the necessary C libraries for the Confluent Kafka client.
+FROM golang:1.24.3-bookworm AS builder
 
 # Set the working directory inside the container.
 WORKDIR /app
@@ -19,15 +19,16 @@ RUN go mod download
 COPY src/ ./src/
 
 # Build the ingestion client application.
-# CGO_ENABLED=0 is important for creating a static binary that works in minimal containers.
-RUN CGO_ENABLED=0 GOOS=linux go build -o /ingestion_client ./src/main.go
+# IMPORTANT: Cannot disable CGO for the Confluent Kafka client, so we need to ensure the build is compatible.
+RUN GOOS=linux go build -o /ingestion_client ./src/main.go
 
 # Build the mock API server application.
 RUN CGO_ENABLED=0 GOOS=linux go build -o /mock_api_server ./src/mock_x_api/mock_api.go
 
 # Stage 2: Final image
 # Use a minimal base image for the final container to keep it small and secure.
-FROM alpine:latest
+# Using Debian Bookworm Slim to ensure it contains the necessary C libraries for the Confluent Kafka client.
+FROM debian:bookworm-slim
 
 # Set the working directory.
 WORKDIR /app
