@@ -21,8 +21,7 @@ func NewPublisher(cfg *config.Config) (Publisher, error) {
 	case "redis":
 		return NewRedisPublisher(cfg)
 	case "kafka":
-		return nil, fmt.Errorf("TODO")
-		// return NewKafkaPublisher(cfg)
+		return NewKafkaPublisher(cfg)
 	default:
 		return nil, fmt.Errorf("unsupported publisher type: %s", cfg.PublisherType)
 	}

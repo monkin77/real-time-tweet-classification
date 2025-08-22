@@ -67,7 +67,7 @@ DEV_MOCK_STREAM="true"
 ## 4. How to Run
 The application is run from the root directory.
 
-Before running the client, ensure you have the Redis server running for development purposes. You can use the provided `build_redis_server.sh` script to start a Redis server in a Docker container.
+Before running the client, ensure you have the Redis/Kafka server running for development purposes. You can use the provided `build_redis_server.sh` or `build_kafka_server.sh` scripts to start a Redis or Kafka server in a Docker container.
 
 ### Data Ingestion Client
 ```bash

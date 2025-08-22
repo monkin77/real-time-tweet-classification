@@ -1,12 +1,14 @@
 package publisher
 
-/*
 import (
 	"fmt"
 	"log"
 
+	// External Libraries
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
-	"github.comcom/your-username/ingestion-service/internal/config"
+
+	// Project Packages
+	"github.com/monkin77/ingestion_service/src/config"
 )
 
 // KafkaPublisher implements the Publisher interface for Apache Kafka.
@@ -46,6 +48,8 @@ func NewKafkaPublisher(cfg *config.Config) (*KafkaPublisher, error) {
 	}, nil
 }
 
+// --- Define the Class Methods ---
+
 // Publish sends a message to the configured Kafka topic.
 func (p *KafkaPublisher) Publish(message string) error {
 	return p.producer.Produce(&kafka.Message{
@@ -59,4 +63,4 @@ func (p *KafkaPublisher) Close() {
 	p.producer.Flush(15 * 1000) // Wait up to 15 seconds for all messages to be delivered.
 	p.producer.Close()
 }
-*/
+
