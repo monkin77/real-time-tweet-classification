@@ -73,3 +73,17 @@ The system is composed of four main components that work together in a pipeline:
 
 ## Project Development Plan & Timeline
 Refer to the [DEV_PLAN.md](DEV_PLAN.md) for a detailed development plan, timeline, and milestones.
+
+## Grafana Dashboard for Data Visualization
+Visit the [Grafana Dashboard](https://monkin77.grafana.net/public-dashboards/17a40ecb0b1649b6ab6ff1a03aad06f7) to visualize real-time analytics of disaster tweets.
+
+## Server Deployment
+The entire system can be deployed on a cloud server, like the **Google Cloud Platform**. Since we already containerized each component using *Docker* and orchestrated them with *Docker Compose*, the deployment process is facilitated and involves the following steps:
+1. Setting up a private network for secure communication between services.
+2. Configuring a Message Broker (Kafka or Redis) for inter-service communication. GCloud offers managed services for both Kafka and Redis.
+3. Deploying each service in its own Docker container, ensuring they can scale independently based on load.
+4. Setting up environment variables and secrets management for sensitive information like API keys.
+5. Configuring monitoring and logging for each service to track performance and troubleshoot issues.
+6. Setting up a CI/CD pipeline for automated testing and deployment of updates.
+
+
